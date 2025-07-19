@@ -1,46 +1,242 @@
-# Getting Started with Create React App
+# TwinTik Admin Portal
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A clean, modular, and responsive React admin portal for TwinTik - a digital identity platform. This application supports multi-level admin management with role-based access control and modern UI design.
 
-## Available Scripts
+## 🎯 Role-Based Access Control
 
-In the project directory, you can run:
+### **Super Admin** (`john@twintik.com`)
+- Full platform control with ability to manage platform admins
+- Manage organizations, subscription plans, and global settings
+- Process NFC requests and manage B2C users
+- Send broadcasts and view activity logs
+- Manage support tickets
 
-### `npm start`
+### **Platform Admin** (`alex.johnson@twintik.com`)
+- Platform-level management assisting Super Admin
+- Manage organizations and subscription plans
+- Process NFC requests and manage B2C users
+- Send broadcasts and view activity logs
+- Manage support tickets
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+### **Org Admin** (`sarah@techcorp.com`)
+- Organization-level management with user and template control
+- Manage team users and assign roles
+- Configure NFC settings and customize themes
+- View subscription details and analytics
+- Manage organization settings
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+### **Org Sub Admin** (`mike@techcorp.com`)
+- Limited access for managing assigned users
+- View basic analytics and activity logs
+- Raise support tickets
 
-### `npm test`
+## 🚀 Features
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### 📊 Dashboard & Analytics
+- Role-specific statistics and metrics
+- Real-time data visualization
+- Interactive charts and graphs
+- Quick action buttons
 
-### `npm run build`
+### 👥 User Management
+- Role-based user lists and filtering
+- User status management
+- Organization-based access control
+- Invitation and onboarding flows
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 🏢 Organization Management
+- View and manage registered organizations
+- Organization statistics and details
+- Admin user management
+- Subscription and billing management
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 📱 NFC Management
+- Request-based NFC card configuration
+- Custom URL support for third-party NFC
+- TwinTik fulfillment options
+- Approval and processing workflows
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### 🎨 Theme & Branding
+- Organization-level theme customization
+- Logo upload and management
+- Color and font customization
+- User restriction settings
 
-### `npm run eject`
+### 📋 Support & Communication
+- Support ticket management
+- Broadcast and announcement system
+- Activity logs and audit trails
+- Role-based communication channels
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+## 🛠 Tech Stack
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+- **React 18** with TypeScript
+- **React Router DOM** for navigation
+- **Tailwind CSS** for styling
+- **Lucide React** for icons
+- **Context API** for state management
+- **Role-based route guards** for security
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+## 🚀 Getting Started
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+### Prerequisites
+- Node.js (v16 or higher)
+- npm or yarn
 
-## Learn More
+### Installation
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd vcard-admin
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Start the development server:
+```bash
+npm start
+```
+
+4. Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+
+### Demo Credentials
+
+Use these credentials to test different roles:
+
+#### Super Admin
+- Email: `john@twintik.com`
+- Password: `password`
+
+#### Platform Admin
+- Email: `alex.johnson@twintik.com`
+- Password: `password`
+
+#### Org Admin
+- Email: `sarah@techcorp.com`
+- Password: `password`
+
+#### Org Sub Admin
+- Email: `mike@techcorp.com`
+- Password: `password`
+
+## 📁 Project Structure
+
+```
+src/
+├── components/          # Reusable UI components
+│   ├── Layout.tsx      # Main layout with sidebar and top bar
+│   ├── Sidebar.tsx     # Navigation sidebar with role-based filtering
+│   ├── TopBar.tsx      # Top navigation bar
+│   ├── RouteGuard.tsx  # Role-based route protection
+│   └── ComingSoonOverlay.tsx # Placeholder for future features
+├── contexts/           # React Context for state management
+│   └── AuthContext.tsx
+├── constants/          # Application constants
+│   ├── routes.ts       # Route definitions and permissions
+│   └── roles.ts        # Role and permission definitions
+├── pages/              # Page components
+│   ├── Dashboard.tsx   # Role-specific dashboard
+│   ├── Users.tsx       # User management
+│   ├── Organizations.tsx # Organization management
+│   ├── NFCRequests.tsx # NFC request processing
+│   └── ...            # Other page components
+├── types/              # TypeScript interfaces
+│   └── index.ts
+└── App.tsx            # Main application component
+```
+
+## 🎨 Design Features
+
+### Modern UI/UX
+- Clean, minimalist design
+- Responsive layout with mobile-first approach
+- Collapsible sidebar navigation
+- Role-based color coding
+- Interactive hover states and transitions
+
+### Navigation Structure
+- Hierarchical navigation with nested items
+- Role-based menu filtering
+- Active state indicators
+- Badge notifications for pending items
+- "Coming Soon" indicators for future features
+
+### Dashboard Features
+- Role-specific statistics cards
+- Quick action buttons
+- Recent activity feed
+- Performance metrics with trend indicators
+- Real-time data updates
+
+## 🔐 Security Features
+
+### Authentication & Authorization
+- JWT-based authentication (simulated)
+- Role-based route protection
+- Permission-based feature access
+- Session management
+- Secure logout functionality
+
+### Route Guards
+- Automatic redirect to login for unauthenticated users
+- Role-based access control for all routes
+- Graceful error handling for unauthorized access
+- Loading states during authentication checks
+
+## 📱 Responsive Design
+
+- Mobile-first approach
+- Tablet and desktop optimizations
+- Touch-friendly interface
+- Adaptive navigation
+- Responsive data tables and forms
+
+## 🚧 Development Status
+
+### Phase 1 (Current)
+- ✅ Core authentication and routing
+- ✅ Role-based access control
+- ✅ Dashboard with role-specific stats
+- ✅ Navigation structure
+- ✅ Basic page scaffolding
+
+### Phase 2 (Coming Soon)
+- 🔄 User management forms
+- 🔄 Organization management
+- 🔄 NFC request processing
+- 🔄 Theme customization
+- 🔄 Support ticket system
+
+### Phase 3 (Future)
+- 📋 Advanced analytics
+- 📋 Real-time notifications
+- 📋 API integrations
+- 📋 Advanced reporting
+- 📋 Mobile app
+
+## 🛠 Available Scripts
+
+- `npm start` - Runs the app in development mode
+- `npm test` - Launches the test runner
+- `npm run build` - Builds the app for production
+- `npm run eject` - Ejects from Create React App
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+## 🆘 Support
+
+For support and questions, please open an issue in the repository.

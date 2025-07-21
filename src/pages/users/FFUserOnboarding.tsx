@@ -18,6 +18,9 @@ import { useNotifications } from '../../contexts';
 import { FFUser, FFUserInviteData } from '../../types/user';
 import InviteFFUserModal from '../../components/InviteFFUserModal';
 // Settings modal removed as per requirements
+import apiService from '../../services/api';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const FFUserOnboarding: React.FC = () => {
   const navigate = useNavigate();
@@ -80,39 +83,31 @@ const FFUserOnboarding: React.FC = () => {
   const handleInviteUser = async (inviteData: FFUserInviteData) => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const newUser: FFUser = {
-        id: `ff-${Date.now()}`,
-        fullName: inviteData.fullName,
-        email: inviteData.email,
-        status: 'pending',
-        onboardingToken: `ff-token-${Math.random().toString(36).substr(2, 9)}`,
-        onboardingLink: `https://twintik.com/onboard/ff-token-${Math.random().toString(36).substr(2, 9)}`,
-        invitedBy: currentUser?.email || '',
-        invitedAt: new Date().toISOString(),
-        tokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
-      };
+      // Call backend API to create invitation
+      const response = await apiService.post('/invitation', {
+        username: inviteData.fullName,
+        emailAddress: inviteData.email,
+      });
 
-      addFFUsers([newUser]);
       setShowInviteModal(false);
-      
       addNotification({
         type: 'success',
         title: 'Invitation Sent',
-        message: `Onboarding link has been sent to ${inviteData.email}`,
+        message: response.data.message || `Onboarding link has been sent to ${inviteData.email}`,
         isRead: false,
         userId: currentUser?.id || '',
       });
-    } catch (error) {
+      toast.success(response.data.message || 'Invitation sent successfully!');
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.message || 'Failed to send invitation. Please try again.';
       addNotification({
         type: 'error',
         title: 'Invitation Failed',
-        message: 'Failed to send invitation. Please try again.',
+        message: errorMsg,
         isRead: false,
         userId: currentUser?.id || '',
       });
+      toast.error(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -231,7 +226,9 @@ const FFUserOnboarding: React.FC = () => {
   // Status description removed as it's not used
 
   return (
-    <div className="space-y-6">
+    <>
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
+      <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -560,6 +557,7 @@ const FFUserOnboarding: React.FC = () => {
         </div>
       )}
     </div>
+    </>
   );
 };
 

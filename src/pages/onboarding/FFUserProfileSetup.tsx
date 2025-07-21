@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import apiService from '../../services/api';
+import * as Yup from 'yup';
 import { 
   User, 
   MapPin, 
@@ -33,6 +35,7 @@ interface ProfileFormData {
   email: string;
   additionalEmails: string[];
   phone: string;
+  phoneCountry: string;
   additionalPhones: string[];
   
   // Address
@@ -68,6 +71,19 @@ interface ProfileFormData {
   bio: string;
 }
 
+// Validation schema for the form (excluding password)
+const validationSchema = Yup.object().shape({
+  fullName: Yup.string().required('Full Name is required'),
+  jobTitle: Yup.string().required('Job Title is required'),
+  company: Yup.string().required('Company is required'),
+  profileUrl: Yup.string()
+    .matches(/^twintik\.com\/[a-z0-9]+$/, 'Profile URL must be lowercase letters and numbers only')
+    .required('Profile URL is required'),
+  email: Yup.string().email('Invalid email address').required('Email is required'),
+  phone: Yup.string().required('Primary Phone Number is required'),
+  phoneCountry: Yup.string().required('Country is required'),
+});
+
 const FFUserProfileSetup: React.FC = () => {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
@@ -76,6 +92,8 @@ const FFUserProfileSetup: React.FC = () => {
   const [tokenValid, setTokenValid] = useState(false);
   const [tokenExpired, setTokenExpired] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
+  const [invitationId, setInvitationId] = useState<string | null>(null);
   
   const [formData, setFormData] = useState<ProfileFormData>({
     fullName: '',
@@ -86,6 +104,7 @@ const FFUserProfileSetup: React.FC = () => {
     email: '',
     additionalEmails: [''],
     phone: '',
+    phoneCountry: 'AE',
     additionalPhones: [''],
     address: {
       street: '',
@@ -111,7 +130,22 @@ const FFUserProfileSetup: React.FC = () => {
   useEffect(() => {
     const validateToken = async () => {
       setLoading(true);
-      
+      try {
+        // Fetch invitation data from backend
+        const currentDate = new Date().toISOString();
+        const response = await apiService.post('/invitation/validate', { token, currentDate });
+        console.log('Invitation data:', response.data);
+        if (response.data && response.data.invitation) {
+          setFormData(prev => ({
+            ...prev,
+            fullName: response.data.invitation.username || '',
+            email: response.data.invitation.emailAddress || '',
+          }));
+          setInvitationId(response.data.invitation._id || null);
+        }
+      } catch (err) {
+        console.error('Error fetching invitation data:', err);
+      }
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
@@ -177,6 +211,7 @@ const FFUserProfileSetup: React.FC = () => {
              email: mockUser.profileData.email || '',
              additionalEmails: mockUser.profileData.additionalEmails || [''],
              phone: mockUser.profileData.phone || '',
+             phoneCountry: '', // Do not prefill phoneCountry from mock data
              additionalPhones: mockUser.profileData.additionalPhones || [''],
              address: {
                street: mockUser.profileData.address?.street || '',
@@ -261,17 +296,63 @@ const FFUserProfileSetup: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
-    
+    // Validate form
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await validationSchema.validate(formData, { abortEarly: false });
+      setFormErrors({});
+    } catch (err: any) {
+      if (err.inner) {
+        const errors: { [key: string]: string } = {};
+        err.inner.forEach((validationError: any) => {
+          if (validationError.path) {
+            errors[validationError.path] = validationError.message;
+          }
+        });
+        setFormErrors(errors);
+      }
+      return;
+    }
+    setSaving(true);
+    try {
+      // Generate a random strong password
+      const randomPassword = Math.random().toString(36).slice(-8) + 'A1!';
+      // Country dial codes
+      const countryDialCodes: { [key: string]: string } = {
+        AE: '+971',
+        US: '+1',
+        IN: '+91',
+        GB: '+44',
+        CA: '+1',
+        AU: '+61',
+      };
+      // Format phone number as '+<code> <number>'
+      const formattedPhone = `${countryDialCodes[formData.phoneCountry] || ''} ${formData.phone.replace(/^0+/, '')}`;
+      // Prepare payload for register API
+      const payload = {
+        email: formData.email,
+        phoneNumber: {
+          value: formattedPhone,
+          country: formData.phoneCountry,
+        },
+        password: randomPassword,
+        fullName: formData.fullName,
+        username: formData.profileUrl.replace('twintik.com/', ''),
+        jobTitle: formData.jobTitle,
+        company: formData.company,
+        website: formData.website,
+      };
+      // Call register API
+      await apiService.post('/auth/register', payload);
+      // Mark invitation as completed
+      if (invitationId) {
+        await apiService.post(`/invitation/${invitationId}/complete`);
+        // Update invitation status in frontend state
+        setFormData(prev => ({ ...prev, status: 'updated' }));
+      }
       // Redirect to confirmation page
-      navigate(`/onboard/${token}/confirmation`);
-      
+      navigate(`/onboard/${token}/confirmation`, { state: { username: formData.profileUrl.replace('twintik.com/', '') } });
     } catch (error) {
-      console.error('Failed to save profile:', error);
+      console.error('Failed to register user:', error);
     } finally {
       setSaving(false);
     }
@@ -296,27 +377,6 @@ const FFUserProfileSetup: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Link Expired</h1>
           <p className="text-gray-600 mb-6">
             This invitation link has expired. Please contact the administrator to request a new invitation.
-          </p>
-          <button
-            onClick={() => navigate('/')}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Go Home
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!tokenValid) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Invalid Link</h1>
-          <p className="text-gray-600 mb-6">
-            This invitation link is not valid. Please check the link or contact the administrator.
           </p>
           <button
             onClick={() => navigate('/')}
@@ -415,19 +475,21 @@ const FFUserProfileSetup: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Full Name *
+                    Full Name <span style={{ color: 'red' }}>*</span>
                   </label>
                   <input
                     type="text"
-                    required
                     value={formData.fullName}
                     onChange={(e) => handleInputChange('fullName', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
+                  {formErrors.fullName && (
+                    <p className="text-red-600 text-xs mt-1">{formErrors.fullName}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Job Title
+                    Job Title <span style={{ color: 'red' }}>*</span>
                   </label>
                   <input
                     type="text"
@@ -435,10 +497,13 @@ const FFUserProfileSetup: React.FC = () => {
                     onChange={(e) => handleInputChange('jobTitle', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
+                  {formErrors.jobTitle && (
+                    <p className="text-red-600 text-xs mt-1">{formErrors.jobTitle}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Company
+                    Company <span style={{ color: 'red' }}>*</span>
                   </label>
                   <input
                     type="text"
@@ -446,6 +511,9 @@ const FFUserProfileSetup: React.FC = () => {
                     onChange={(e) => handleInputChange('company', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
+                  {formErrors.company && (
+                    <p className="text-red-600 text-xs mt-1">{formErrors.company}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -461,20 +529,24 @@ const FFUserProfileSetup: React.FC = () => {
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Profile URL
+                    Profile URL <span style={{ color: 'red' }}>*</span>
                   </label>
                   <div className="flex">
                     <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
-                      twintik.com/card/
+                      twintik.com/
                     </span>
                     <input
                       type="text"
-                      value={formData.profileUrl.replace('twintik.com/card/', '')}
-                      onChange={(e) => handleInputChange('profileUrl', `twintik.com/card/${e.target.value}`)}
+                      required
+                      value={formData.profileUrl.replace('twintik.com/', '')}
+                      onChange={(e) => handleInputChange('profileUrl', `twintik.com/${e.target.value}`)}
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-r-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       placeholder="yourusername"
                     />
                   </div>
+                  {formErrors.profileUrl && (
+                    <p className="text-red-600 text-xs mt-1">{formErrors.profileUrl}</p>
+                  )}
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -506,12 +578,15 @@ const FFUserProfileSetup: React.FC = () => {
                   </label>
                   <input
                     type="email"
-                    required
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="sarah.johnson@example.com"
+                    placeholder="Enter your email address"
+                    disabled={true}
                   />
+                  {formErrors.email && (
+                    <p className="text-red-600 text-xs mt-1">{formErrors.email}</p>
+                  )}
                 </div>
                 
                 <div>
@@ -562,15 +637,36 @@ const FFUserProfileSetup: React.FC = () => {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Primary Phone Number
+                    Primary Phone Number <span style={{ color: 'red' }}>*</span>
                   </label>
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="+1-555-0123"
-                  />
+                  <div className="flex space-x-2">
+                    <select
+                      value={formData.phoneCountry}
+                      onChange={e => setFormData(prev => ({ ...prev, phoneCountry: e.target.value }))}
+                      className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <option value="">Country</option>
+                      <option value="US">US (+1)</option>
+                      <option value="IN">IN (+91)</option>
+                      <option value="AE">AE (+971)</option>
+                      <option value="GB">UK (+44)</option>
+                      <option value="CA">CA (+1)</option>
+                      <option value="AU">AU (+61)</option>
+                    </select>
+                    <input
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      placeholder="Phone number"
+                    />
+                  </div>
+                  {formErrors.phone && (
+                    <p className="text-red-600 text-xs mt-1">{formErrors.phone}</p>
+                  )}
+                  {formErrors.phoneCountry && (
+                    <p className="text-red-600 text-xs mt-1">{formErrors.phoneCountry}</p>
+                  )}
                 </div>
                 
                 <div>

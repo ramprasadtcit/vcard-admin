@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import { 
   CheckCircle, 
   Clock, 
@@ -10,6 +11,8 @@ import {
 } from 'lucide-react';
 
 const FFUserProfileConfirmation: React.FC = () => {
+  const location = useLocation();
+  const username = location.state?.username;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-4">
@@ -186,10 +189,10 @@ const FFUserProfileConfirmation: React.FC = () => {
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4">
           <button
-            onClick={() => window.open('https://twintik.com', '_blank')}
+            onClick={() => window.open(username ? `https://twintik.com/${username}` : 'https://twintik.com', '_blank')}
             className="flex-1 inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-purple-600 hover:bg-purple-700 transition-colors"
           >
-            Visit Our Website
+            Visit Your Website
             <ArrowRight className="w-4 h-4 ml-2" />
           </button>
           <button

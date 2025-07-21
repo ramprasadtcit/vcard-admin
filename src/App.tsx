@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, NotificationProvider } from './contexts';
+import { AuthProvider, NotificationProvider, FFUsersProvider } from './contexts';
 import RouteGuard from './components/RouteGuard';
 import Layout from './components/Layout';
 
@@ -8,7 +8,6 @@ import Layout from './components/Layout';
 import {
   Login,
   Dashboard,
-  SuperAdminDashboard,
   PlatformAdmins,
   SubscriptionPlans,
   Organizations,
@@ -39,18 +38,37 @@ import {
   OrgAvatarSettingsPage,
   OrgBotSettings,
   OrgLogs,
-  OrgSettingsNew
+  OrgSettingsNew,
+  FFUserOnboarding,
+  FFUserDetail,
+  FFUserEdit,
+  BulkImportFFUsers
 } from './pages';
+
+// Import onboarding pages separately since they're not in the pages index
+import FFUserProfileSetup from './pages/onboarding/FFUserProfileSetup';
+import FFUserProfileConfirmation from './pages/onboarding/FFUserProfileConfirmation';
+import EmailInvitationPage from './pages/EmailInvitationPage';
+import NFCConfirmationPage from './pages/NFCConfirmationPage';
+import TwinTikMobileAppPage from './pages/TwinTikMobileAppPage';
+import EmailTemplatesIndex from './pages/EmailTemplatesIndex';
 
 function App() {
   return (
     <AuthProvider>
       <NotificationProvider>
-        <Router>
-          <div className="App">
+        <FFUsersProvider>
+          <Router>
+            <div className="App">
             <Routes>
               {/* Public routes */}
               <Route path="/login" element={<Login />} />
+              <Route path="/onboard/:token" element={<FFUserProfileSetup />} />
+              <Route path="/onboard/:token/confirmation" element={<FFUserProfileConfirmation />} />
+        <Route path="/email-templates" element={<EmailTemplatesIndex />} />
+        <Route path="/email-invitation" element={<EmailInvitationPage />} />
+        <Route path="/nfc-confirmation" element={<NFCConfirmationPage />} />
+        <Route path="/twintik-mobile-app" element={<TwinTikMobileAppPage />} />
               
               {/* Protected routes */}
               <Route path="/" element={
@@ -73,6 +91,10 @@ function App() {
                 <Route path="activity-logs" element={<ActivityLogs />} />
                 <Route path="support-tickets" element={<SupportTickets />} />
                 <Route path="b2c-users" element={<B2CUsers />} />
+                <Route path="admin/fnf-onboarding" element={<FFUserOnboarding />} />
+                <Route path="admin/fnf-onboarding/user/:userId" element={<FFUserDetail />} />
+                <Route path="admin/fnf-onboarding/user/:userId/edit" element={<FFUserEdit />} />
+                <Route path="admin/fnf-onboarding/bulk-import" element={<BulkImportFFUsers />} />
                 <Route path="user/:userId" element={<UserDetail />} />
                 <Route path="org-user/:userId" element={<OrganizationUserDetail />} />
                 
@@ -108,6 +130,7 @@ function App() {
             </Routes>
           </div>
         </Router>
+        </FFUsersProvider>
       </NotificationProvider>
     </AuthProvider>
   );

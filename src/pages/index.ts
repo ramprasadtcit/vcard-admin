@@ -11,6 +11,10 @@ export { default as UserDetail } from './users/UserDetail';
 export { default as B2CUsers } from './users/B2CUsers';
 export { default as PlatformAdmins } from './users/PlatformAdmins';
 export { default as AssignedUsers } from './users/AssignedUsers';
+export { default as FFUserOnboarding } from './users/FFUserOnboarding';
+export { default as FFUserDetail } from './users/FFUserDetail';
+export { default as FFUserEdit } from './users/FFUserEdit';
+export { default as BulkImportFFUsers } from './onboarding/BulkImportFFUsers';
 
 // Organization Pages
 export { default as Organizations } from './organizations/Organizations';

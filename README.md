@@ -43,6 +43,7 @@ A clean, modular, and responsive React admin portal for TwinTik - a digital iden
 - User status management
 - Organization-based access control
 - Invitation and onboarding flows
+- **Bulk Import F&F Users** - CSV-based mass user import with email invitations and full user details
 
 ### 🏢 Organization Management
 - View and manage registered organizations

@@ -18,7 +18,8 @@ import {
   ChevronDown,
   ChevronRight,
   Megaphone,
-  Bot
+  Bot,
+  UserPlus
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { NAVIGATION_ITEMS } from '../constants/routes';
@@ -61,6 +62,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
       Megaphone: Megaphone,
       Settings: Settings,
       Bot: Bot,
+      UserPlus: UserPlus,
     };
     return iconMap[iconName] || LayoutDashboard;
   };

@@ -149,4 +149,87 @@ export interface SubAdmin {
     canManageNFC: boolean;
     canManageSettings: boolean;
   };
+}
+
+export interface FFUser {
+  id: string;
+  fullName: string;
+  email: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'expired';
+  onboardingToken: string;
+  onboardingLink: string;
+  invitedBy: string;
+  invitedAt: string;
+  linkOpenedAt?: string;
+  profileSubmittedAt?: string;
+  nfcConfiguredAt?: string;
+  tokenExpiresAt: string;
+  profileData?: {
+    // Basic Info
+    jobTitle?: string;
+    company?: string;
+    website?: string;
+    profileUrl?: string;
+    
+    // Contact Details
+    email?: string;
+    additionalEmails?: string[];
+    phone?: string;
+    additionalPhones?: string[];
+    
+    // Address
+    address?: {
+      street?: string;
+      city?: string;
+      state?: string;
+      zipCode?: string;
+      country?: string;
+    };
+    
+    // Social Links
+    socialLinks?: {
+      linkedin?: string;
+      twitter?: string;
+      facebook?: string;
+      instagram?: string;
+      youtube?: string;
+      github?: string;
+      [key: string]: string | undefined;
+    };
+    
+    // Custom Social Links
+    customSocialLinks?: Array<{
+      platform: string;
+      url: string;
+    }>;
+    
+    // Profile Picture
+    profilePicture?: string;
+    
+    // Bio
+    bio?: string;
+  };
+  settings?: {
+    autoExpiryDays: number;
+    isActive: boolean;
+  };
+}
+
+export interface FFUserInviteData {
+  fullName: string;
+  email: string;
+}
+
+export interface FFUserSettings {
+  maxActiveSlots: number;
+  autoExpiryDays: number;
+  isEnabled: boolean;
+}
+
+export interface FFUserToken {
+  token: string;
+  userId: string;
+  expiresAt: string;
+  isActive: boolean;
+  createdAt: string;
 } 

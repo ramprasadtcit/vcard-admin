@@ -27,7 +27,9 @@ import {
   BotSettings,
   KnowledgeDocument,
   AvatarConfig,
-  UserBotActivation
+  UserBotActivation,
+  FFUser,
+  FFUserSettings
 } from '../types';
 
 export const mockUsers: User[] = [
@@ -2515,4 +2517,177 @@ export const mockBotSettings: BotSettings = {
   userActivations: mockUserBotActivations,
   createdAt: '2024-01-15T10:00:00Z',
   updatedAt: '2024-01-20T14:30:00Z',
+};
+
+// F&F User Onboarding Mock Data
+export const mockFFUsers: FFUser[] = [
+  {
+    id: 'ff-1',
+    fullName: 'Sarah Johnson',
+    email: 'sarah.johnson@example.com',
+    status: 'completed',
+    onboardingToken: 'ff-token-123456',
+    onboardingLink: 'https://twintik.com/onboard/ff-token-123456',
+    invitedBy: 'john@twintik.com',
+    invitedAt: '2024-01-15T10:00:00Z',
+    linkOpenedAt: '2024-01-15T14:30:00Z',
+    profileSubmittedAt: '2024-01-16T09:15:00Z',
+    tokenExpiresAt: '2024-01-22T10:00:00Z',
+    profileData: {
+      jobTitle: 'Senior Developer',
+      company: 'TechCorp Solutions',
+      website: 'https://sarahjohnson.dev',
+      profileUrl: 'twintik.com/card/sarahjohnson',
+                   email: 'sarah.johnson@example.com',
+             additionalEmails: ['sarah.j@example.com'],
+             phone: '+1-555-0123',
+             additionalPhones: ['+1-555-0124'],
+      address: {
+        street: '123 Tech Street',
+        city: 'San Francisco',
+        state: 'CA',
+        zipCode: '94105',
+        country: 'United States'
+      },
+                   socialLinks: {
+               linkedin: 'https://linkedin.com/in/sarahjohnson',
+               twitter: 'https://twitter.com/sarahj',
+               github: 'https://github.com/sarahj'
+             },
+             customSocialLinks: [
+               { platform: 'TikTok', url: 'https://tiktok.com/@sarahj' },
+               { platform: 'Snapchat', url: 'https://snapchat.com/add/sarahj' }
+             ],
+      profilePicture: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
+      bio: 'Passionate about creating innovative digital solutions.'
+    }
+  },
+  {
+    id: 'ff-2',
+    fullName: 'Michael Chen',
+    email: 'michael.chen@example.com',
+    status: 'in_progress',
+    onboardingToken: 'ff-token-789012',
+    onboardingLink: 'https://twintik.com/onboard/ff-token-789012',
+    invitedBy: 'john@twintik.com',
+    invitedAt: '2024-01-18T11:00:00Z',
+    linkOpenedAt: '2024-01-19T16:45:00Z',
+    tokenExpiresAt: '2024-01-25T11:00:00Z'
+  },
+  {
+    id: 'ff-3',
+    fullName: 'Emily Rodriguez',
+    email: 'emily.rodriguez@example.com',
+    status: 'pending',
+    onboardingToken: 'ff-token-345678',
+    onboardingLink: 'https://twintik.com/onboard/ff-token-345678',
+    invitedBy: 'john@twintik.com',
+    invitedAt: '2024-01-20T09:30:00Z',
+    tokenExpiresAt: '2024-01-27T09:30:00Z'
+  },
+  {
+    id: 'ff-4',
+    fullName: 'David Kim',
+    email: 'david.kim@example.com',
+    status: 'completed',
+    onboardingToken: 'ff-token-901234',
+    onboardingLink: 'https://twintik.com/onboard/ff-token-901234',
+    invitedBy: 'john@twintik.com',
+    invitedAt: '2024-01-10T08:00:00Z',
+    linkOpenedAt: '2024-01-10T12:15:00Z',
+    profileSubmittedAt: '2024-01-11T10:30:00Z',
+    nfcConfiguredAt: '2024-01-12T14:20:00Z',
+    tokenExpiresAt: '2024-01-17T08:00:00Z',
+    profileData: {
+      jobTitle: 'Product Manager',
+      company: 'Innovation Labs',
+      website: 'https://davidkim.io',
+      profileUrl: 'twintik.com/card/davidkim',
+                   email: 'david.kim@example.com',
+             additionalEmails: ['david.k@example.com'],
+             phone: '+1-555-0456',
+             additionalPhones: ['+1-555-0457'],
+      address: {
+        street: '456 Innovation Ave',
+        city: 'Seattle',
+        state: 'WA',
+        zipCode: '98101',
+        country: 'United States'
+      },
+                   socialLinks: {
+               linkedin: 'https://linkedin.com/in/davidkim',
+               twitter: 'https://twitter.com/davidkim',
+               github: 'https://github.com/davidkim'
+             },
+             customSocialLinks: [
+               { platform: 'Medium', url: 'https://medium.com/@davidkim' },
+               { platform: 'Behance', url: 'https://behance.net/davidkim' }
+             ],
+      profilePicture: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
+      bio: 'Building the future of digital identity.'
+    }
+  },
+  {
+    id: 'ff-5',
+    fullName: 'Lisa Thompson',
+    email: 'lisa.thompson@example.com',
+    status: 'completed',
+    onboardingToken: 'ff-token-567890',
+    onboardingLink: 'https://twintik.com/onboard/ff-token-567890',
+    invitedBy: 'john@twintik.com',
+    invitedAt: '2024-01-12T15:00:00Z',
+    linkOpenedAt: '2024-01-13T10:20:00Z',
+    profileSubmittedAt: '2024-01-14T11:45:00Z',
+    tokenExpiresAt: '2024-01-19T15:00:00Z',
+    profileData: {
+      jobTitle: 'UX Designer',
+      company: 'Design Studio',
+      website: 'https://lisathompson.design',
+      profileUrl: 'twintik.com/card/lisathompson',
+      phone: '+1-555-0789',
+      additionalPhones: ['+1-555-0790'],
+      address: {
+        street: '789 Design Blvd',
+        city: 'Austin',
+        state: 'TX',
+        zipCode: '73301',
+        country: 'United States'
+      },
+      socialLinks: {
+        linkedin: 'https://linkedin.com/in/lisathompson',
+        twitter: 'https://twitter.com/lisadesigns',
+        instagram: 'https://instagram.com/lisadesigns'
+      },
+      profilePicture: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
+      bio: 'Creating beautiful and functional user experiences.'
+    }
+  },
+  {
+    id: 'ff-6',
+    fullName: 'Alex Martinez',
+    email: 'alex.martinez@example.com',
+    status: 'expired',
+    onboardingToken: 'ff-token-expired-123',
+    onboardingLink: 'https://twintik.com/onboard/ff-token-expired-123',
+    invitedBy: 'john@twintik.com',
+    invitedAt: '2024-01-05T10:00:00Z',
+    tokenExpiresAt: '2024-01-12T10:00:00Z'
+  },
+  {
+    id: 'ff-7',
+    fullName: 'Jennifer Wilson',
+    email: 'jennifer.wilson@example.com',
+    status: 'pending',
+    onboardingToken: 'ff-token-pending-expired',
+    onboardingLink: 'https://twintik.com/onboard/ff-token-pending-expired',
+    invitedBy: 'john@twintik.com',
+    invitedAt: '2024-01-10T14:00:00Z',
+    tokenExpiresAt: '2024-01-17T14:00:00Z' // This will show as expired
+  }
+];
+
+export const mockFFUserSettings: FFUserSettings = {
+  maxActiveSlots: 50,
+  autoExpiryDays: 30,
+  isEnabled: true
 };

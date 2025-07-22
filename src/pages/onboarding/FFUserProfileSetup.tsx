@@ -164,7 +164,7 @@ const FFUserProfileSetup: React.FC = () => {
            email: 'sarah.johnson@example.com',
            status: 'in_progress',
            onboardingToken: token,
-           onboardingLink: `https://twintik.com/onboard/${token}`,
+           onboardingLink: `https://admin.twintik.com/onboard/${token}`,
            invitedBy: 'john@twintik.com',
            invitedAt: '2024-01-15T10:00:00Z',
            tokenExpiresAt: '2024-01-22T10:00:00Z',

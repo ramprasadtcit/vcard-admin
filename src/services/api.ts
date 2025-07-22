@@ -10,7 +10,7 @@ import {
 
 // Configure axios defaults
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3000/api/v1',
+  baseURL: process.env.REACT_APP_API_URL || 'https://api.twintik.com/api/v1',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

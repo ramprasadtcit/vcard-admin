@@ -38,7 +38,8 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      // window.location.href = '/login'; // Removed redirect
+      // Optionally, show a toast or set an error state here
     }
     return Promise.reject(error);
   }

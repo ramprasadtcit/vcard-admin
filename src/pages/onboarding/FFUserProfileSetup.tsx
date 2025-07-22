@@ -341,12 +341,13 @@ const FFUserProfileSetup: React.FC = () => {
         company: formData.company,
         website: formData.website,
       };
+      debugger
       // Call register API
-      await apiService.post('/auth/register', payload);
-      // Mark invitation as completed
-      if (invitationId) {
-        await apiService.post(`/invitation/${invitationId}/complete`);
-        // Update invitation status in frontend state
+      const registerRes = await apiService.post('/auth/register', payload);
+      const newUserId = registerRes.data?.data?.user?.id;
+      // Mark invitation as completed and link userId
+      if (invitationId && newUserId) {
+        await apiService.post(`/invitation/${invitationId}/complete`, { userId: newUserId, status: 'completed' });
         setFormData(prev => ({ ...prev, status: 'updated' }));
       }
       // Redirect to confirmation page
@@ -506,7 +507,7 @@ const FFUserProfileSetup: React.FC = () => {
                     Company <span style={{ color: 'red' }}>*</span>
                   </label>
                   <input
-                    type="text"
+                    type="text" 
                     value={formData.company}
                     onChange={(e) => handleInputChange('company', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"

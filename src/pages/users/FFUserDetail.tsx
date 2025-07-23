@@ -78,7 +78,7 @@ const FFUserDetail: React.FC = () => {
   const [editedProfile, setEditedProfile] = useState<UserProfile | null>(null);
   // Add state for additionalPhones for edit mode
   const [additionalPhones, setAdditionalPhones] = useState<{ value: string, country: string }[]>([]);
-  const [additionalEmails, setAdditionalEmails] = useState<string[]>([]);
+  const [additionalEmails, setAdditionalEmails] = useState<{ value: string }[]>([]);
 
   useEffect(() => {
     if (location.state?.editMode || location.state?.edit) {
@@ -122,9 +122,9 @@ const FFUserDetail: React.FC = () => {
     if (userProfile && userProfile.data && userProfile.data.user) {
       const emails = userProfile.data.user.additionalEmails;
       if (Array.isArray(emails)) {
-        setAdditionalEmails(emails);
+        setAdditionalEmails(emails.map((e: any) => typeof e === 'string' ? { value: e } : e));
       } else if (typeof emails === 'string' && emails.trim()) {
-        setAdditionalEmails(emails.split(',').map((e: string) => e.trim()).filter((e: string) => e));
+        setAdditionalEmails(emails.split(',').map((e: string) => ({ value: e.trim() })));
       } else {
         setAdditionalEmails([]);
       }
@@ -286,13 +286,13 @@ const FFUserDetail: React.FC = () => {
     const handleAdditionalEmailChange = (index: number, value: string) => {
       setAdditionalEmails(prev => {
         const updated = [...prev];
-        updated[index] = value;
+        updated[index] = { value };
         return updated;
       });
     };
 
     const addAdditionalEmail = () => {
-      setAdditionalEmails(prev => [...prev, '']);
+      setAdditionalEmails(prev => [...prev, { value: '' }]);
     };
 
     const removeAdditionalEmail = (index: number) => {
@@ -307,7 +307,7 @@ const FFUserDetail: React.FC = () => {
         ...editedProfile,
         phoneNumbers: additionalPhones.map(p => ({ value: p.value, country: p.country })),
         // Send additionalEmails as array
-        additionalEmails: additionalEmails.filter(e => e.trim()).join(', '),
+        additionalEmails: additionalEmails.filter(e => e.value && e.value.trim()).map(e => e.value).join(', '),
         updatedBy: 'superadmin', // Always send 'superadmin' from FFUserDetail
       };
       // Remove fields that should not be updated
@@ -318,10 +318,7 @@ const FFUserDetail: React.FC = () => {
         delete updatedData[field];
       });
       try {
-        // Clean the payload to remove undefined/null fields
-        const cleanData = Object.fromEntries(Object.entries(updatedData).filter(([_, v]) => v !== undefined && v !== null));
-        console.info(cleanData)
-        const response = await api.put(`/profile/admin/${userId}`, cleanData, {
+        const response = await api.put(`/profile/admin/${userId}`, updatedData, {
           headers: { 'x-twintik-client': 'web' }
         });
         toast.success('User profile updated successfully');
@@ -342,9 +339,9 @@ const FFUserDetail: React.FC = () => {
             : []);
           const emails = response.data.user.additionalEmails;
           if (Array.isArray(emails)) {
-            setAdditionalEmails(emails);
+            setAdditionalEmails(emails.map((e: any) => typeof e === 'string' ? { value: e } : e));
           } else if (typeof emails === 'string' && emails.trim()) {
-            setAdditionalEmails(emails.split(',').map((e: string) => e.trim()).filter((e: string) => e));
+            setAdditionalEmails(emails.split(',').map((e: string) => ({ value: e.trim() })));
           } else {
             setAdditionalEmails([]);
           }
@@ -484,7 +481,7 @@ const FFUserDetail: React.FC = () => {
                     type="email"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     value={editMode ? (profile?.email || '') : displayValue(profile?.email)}
-                    disabled={!editMode}
+                    disabled={true}
                     onChange={e => handleChange('email', e.target.value)}
                   />
                 </div>
@@ -587,7 +584,7 @@ const FFUserDetail: React.FC = () => {
                     type="email"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     value={editMode ? (profile?.email || '') : displayValue(profile?.email)}
-                    disabled={!editMode}
+                    disabled={true}
                     onChange={e => handleChange('email', e.target.value)}
                   />
                 </div>
@@ -600,7 +597,7 @@ const FFUserDetail: React.FC = () => {
                           <input
                             type="email"
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-2"
-                            value={email}
+                            value={email.value}
                             onChange={e => handleAdditionalEmailChange(index, e.target.value)}
                             placeholder="Enter additional email"
                           />
@@ -692,7 +689,6 @@ const FFUserDetail: React.FC = () => {
                               defaultCountry={(phone.country && phone.country.length === 2 ? phone.country : 'AE') as any}
                               value={phone.value}
                               onChange={value => {
-                                // Always use a valid country code
                                 const country = phone.country && phone.country.length === 2 ? phone.country : 'AE';
                                 handleAdditionalPhoneChange(index, value || '', country);
                               }}

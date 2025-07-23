@@ -299,6 +299,17 @@ export const apiService = {
     const response = await api.delete(url);
     return response.data;
   },
+
+  // Username/URL check and suggestion
+  checkUsernameAvailability: async (username: string) => {
+    const response = await api.get(`/auth/check-username/${encodeURIComponent(username)}`);
+    return response.data;
+  },
+
+  getUsernameSuggestions: async (email: string) => {
+    const response = await api.get(`/auth/username-suggestions?email=${encodeURIComponent(email)}`);
+    return response.data;
+  },
 };
 
 export default api; 

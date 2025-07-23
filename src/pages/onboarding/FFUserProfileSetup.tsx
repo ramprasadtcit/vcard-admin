@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import apiService from '../../services/api';
+import { apiService } from '../../services/api';
 import * as Yup from 'yup';
 import PhoneInput from 'react-phone-number-input';
 import { isValidPhoneNumber } from 'react-phone-number-input';
@@ -199,6 +199,12 @@ const FFUserProfileSetup: React.FC = () => {
     bio: ''
   });
 
+  // Username check/suggestion state
+  const [usernameAvailable, setUsernameAvailable] = useState<null | boolean>(null);
+  const [checkingUsername, setCheckingUsername] = useState(false);
+  const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
+  const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(null);
+  const [usernameCheckError, setUsernameCheckError] = useState<string | null>(null);
 
   // Simulate token validation
   useEffect(() => {
@@ -207,15 +213,15 @@ const FFUserProfileSetup: React.FC = () => {
       try {
         // Fetch invitation data from backend
         const currentDate = new Date().toISOString();
-        const response = await apiService.post('/invitation/validate', { token, currentDate });
-        console.log('Invitation data:', response.data);
-        if (response.data && response.data.invitation) {
+        const response: any = await apiService.post('/invitation/validate', { token, currentDate });
+        console.log('Invitation data:', response);
+        if (response && response.invitation) {
           setFormData(prev => ({
             ...prev,
-            fullName: response.data.invitation.username || '',
-            email: response.data.invitation.emailAddress || '',
+            fullName: response.invitation.username || '',
+            email: response.invitation.emailAddress || '',
           }));
-          setInvitationId(response.data.invitation._id || null);
+          setInvitationId(response.invitation._id || null);
         }
       } catch (err) {
         console.error('Error fetching invitation data:', err);
@@ -313,6 +319,87 @@ const FFUserProfileSetup: React.FC = () => {
 
     validateToken();
   }, [token]);
+
+  useEffect(() => {
+    console.log('Email changed:', formData.email); // Debug log
+    if (formData.email) {
+      console.log('Fetching suggestions for email:', formData.email); // Debug log
+      setCheckingUsername(true);
+      apiService.getUsernameSuggestions(formData.email)
+        .then(res => {
+          console.log('Suggestions received:', res); // Debug log
+          setUsernameSuggestions(res.data?.suggestions || []);
+        })
+        .catch((err) => {
+          console.error('Error fetching suggestions:', err); // Debug log
+          setUsernameSuggestions([]);
+        })
+        .finally(() => setCheckingUsername(false));
+    }
+  }, [formData.email]);
+
+  // Also fetch suggestions when component mounts if email is already available
+  useEffect(() => {
+    if (formData.email && usernameSuggestions.length === 0) {
+      console.log('Initial fetch for suggestions with email:', formData.email); // Debug log
+      setCheckingUsername(true);
+      apiService.getUsernameSuggestions(formData.email)
+        .then(res => {
+          console.log('Initial suggestions received:', res); // Debug log
+          setUsernameSuggestions(res.data?.suggestions || []);
+        })
+        .catch((err) => {
+          console.error('Error fetching initial suggestions:', err); // Debug log
+          setUsernameSuggestions([]);
+        })
+        .finally(() => setCheckingUsername(false));
+    }
+  }, []); // Run only once on mount
+
+  const handleCheckUsername = async () => {
+    setCheckingUsername(true);
+    setUsernameCheckError(null);
+    setUsernameAvailable(null);
+    try {
+      const username = formData.profileUrl.replace('twintik.com/', '');
+      const res = await apiService.checkUsernameAvailability(username);
+      setUsernameAvailable(res.data?.available);
+      setUsernameSuggestions(res.data?.suggestions || []);
+      if (!res.data?.available) {
+        setUsernameCheckError('This URL is already taken. Please choose another or pick a suggestion.');
+      }
+    } catch (err) {
+      setUsernameCheckError('Failed to check URL. Please try again.');
+    } finally {
+      setCheckingUsername(false);
+    }
+  };
+
+  const handlePickSuggestion = async (suggestion: string) => {
+    setFormData(prev => ({
+      ...prev,
+      profileUrl: `twintik.com/${suggestion}`
+    }));
+    setSelectedSuggestion(suggestion);
+    setUsernameAvailable(null); // Reset availability check
+    setUsernameCheckError(null);
+    
+    // Automatically check availability for the selected suggestion
+    try {
+      setCheckingUsername(true);
+      const res = await apiService.checkUsernameAvailability(suggestion);
+      setUsernameAvailable(res.data?.available);
+      if (res.data?.available) {
+        setUsernameCheckError(null);
+      } else {
+        setUsernameCheckError('This URL is already taken. Please choose another or pick a suggestion.');
+      }
+    } catch (err) {
+      setUsernameCheckError('Failed to check URL. Please try again.');
+    } finally {
+      setCheckingUsername(false);
+    }
+  };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -538,7 +625,7 @@ const FFUserProfileSetup: React.FC = () => {
         navigate(`/onboard/${token}/confirmation`, { 
           state: { username: formData.profileUrl.replace('twintik.com/', '') } 
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Registration failed:', error);
         // Handle specific error cases
         if (error.response?.data?.message) {
@@ -755,23 +842,95 @@ const FFUserProfileSetup: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Profile URL <span style={{ color: 'red' }}>*</span>
                   </label>
-                  <div className="flex">
-                    <span className={`inline-flex items-center px-3 rounded-l-md border border-r-0 bg-gray-50 text-gray-500 text-sm ${
-                      formErrors.profileUrl ? 'border-red-500' : 'border-gray-300'
-                    }`}>
-                      twintik.com/
-                    </span>
-                    <input
-                      type="text"
-                      value={formData.profileUrl.replace('twintik.com/', '')}
-                      onChange={(e) => handleInputChange('profileUrl', `twintik.com/${e.target.value}`)}
-                      className={`flex-1 px-3 py-2 border rounded-r-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                        formErrors.profileUrl ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      placeholder="yourusername"
-                      data-error={!!formErrors.profileUrl}
-                    />
-                  </div>
+                  
+                  <div className="flex items-stretch">
+  <span
+    className={`inline-flex items-center px-3 text-sm border border-r-0 rounded-l-md bg-gray-50 text-gray-500 ${
+      formErrors.profileUrl ? 'border-red-500' : 'border-gray-300'
+    }`}
+  >
+    twintik.com/
+  </span>
+
+  <div className="relative flex-1">
+    <input
+      type="text"
+      value={formData.profileUrl.replace('twintik.com/', '')}
+      onChange={(e) => {
+        handleInputChange('profileUrl', `twintik.com/${e.target.value}`);
+        setUsernameAvailable(null);
+        setSelectedSuggestion(null);
+        setUsernameCheckError(null);
+      }}
+      className={`w-full px-3 py-4 text-sm border rounded-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+        formErrors.profileUrl ? 'border-red-500' : 'border-gray-300'
+      } ${usernameAvailable !== null ? 'pr-10' : ''}`}
+      placeholder="yourusername"
+    />
+    {usernameAvailable === true && (
+      <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+        <span className="text-green-600 text-lg font-bold">✓</span>
+      </div>
+    )}
+    {usernameAvailable === false && (
+      <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+        <span className="text-red-600 text-lg font-bold">✗</span>
+      </div>
+    )}
+  </div>
+
+  <button
+    type="button"
+    onClick={handleCheckUsername}
+    disabled={checkingUsername || !formData.profileUrl.replace('twintik.com/', '').trim()}
+    className="h-12 w-24 ml-4 bg-purple-600 text-white rounded-full hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center justify-center"
+  >
+    {checkingUsername ? 'Checking...' : 'Check'}
+  </button>
+</div>
+
+                  
+                  {/* Show check result */}
+                  {usernameAvailable === true && (
+                    <p className="text-green-600 text-xs mt-1 flex items-center">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      This URL is available!
+                    </p>
+                  )}
+                  {usernameAvailable === false && usernameCheckError && (
+                    <p className="text-red-600 text-xs mt-1 flex items-center">
+                      <AlertCircle className="w-3 h-3 mr-1" />
+                      {usernameCheckError}
+                    </p>
+                  )}
+                  
+                  {/* Suggestions */}
+                  {usernameSuggestions.length > 0 && (
+                    <div className="mt-2">
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 shadow-sm">
+                        <span className="text-xs text-gray-600 font-semibold block mb-2">Suggestions:</span>
+                        <div className="flex flex-wrap gap-2">
+                          {usernameSuggestions.map((suggestion) => (
+                            <button
+                              key={suggestion}
+                              type="button"
+                              onClick={() => handlePickSuggestion(suggestion)}
+                              className={`px-3 py-1 rounded-full border text-xs font-medium transition-colors ${
+                                selectedSuggestion === suggestion
+                                  ? 'bg-purple-600 text-white border-purple-600'
+                                  : 'bg-white border-gray-300 text-gray-700 hover:bg-purple-50'
+                              }`}
+                            >
+                              {suggestion}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+            
+                  
                   {formErrors.profileUrl && (
                     <p className="text-red-600 text-xs mt-1 flex items-center">
                       <AlertCircle className="w-3 h-3 mr-1" />

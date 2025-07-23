@@ -2,16 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import apiService from '../../services/api';
 import * as Yup from 'yup';
+import PhoneInput from 'react-phone-number-input';
+import { isValidPhoneNumber } from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 import { 
   User, 
   MapPin, 
   Globe, 
   Linkedin, 
   Twitter, 
-  Facebook, 
   Instagram, 
-  Youtube, 
-  Github,
   Camera,
   Save,
   ArrowLeft,
@@ -22,6 +22,7 @@ import {
   X
 } from 'lucide-react';
 import { FFUser } from '../../types/user';
+import { ComingSoonOverlay } from '../../components';
 
 interface ProfileFormData {
   // Basic Info
@@ -35,7 +36,6 @@ interface ProfileFormData {
   email: string;
   additionalEmails: string[];
   phone: string;
-  phoneCountry: string;
   additionalPhones: string[];
   
   // Address
@@ -51,10 +51,7 @@ interface ProfileFormData {
   socialLinks: {
     linkedin: string;
     twitter: string;
-    facebook: string;
     instagram: string;
-    youtube: string;
-    github: string;
     [key: string]: string;
   };
   
@@ -73,15 +70,95 @@ interface ProfileFormData {
 
 // Validation schema for the form (excluding password)
 const validationSchema = Yup.object().shape({
-  fullName: Yup.string().required('Full Name is required'),
-  jobTitle: Yup.string().required('Job Title is required'),
-  company: Yup.string().required('Company is required'),
+  fullName: Yup.string()
+    .required('Full Name is required')
+    .min(2, 'Full Name must be at least 2 characters')
+    .max(100, 'Full Name cannot exceed 100 characters'),
+  jobTitle: Yup.string()
+    .required('Job Title is required')
+    .max(100, 'Job Title cannot exceed 100 characters'),
+  company: Yup.string()
+    .required('Company is required')
+    .max(100, 'Company name cannot exceed 100 characters'),
+  website: Yup.string()
+    .test('website-url', 'Please enter a valid website URL', function(value) {
+      if (!value || value.trim() === '') return true; // Allow empty
+      return /^https?:\/\/.+/.test(value);
+    })
+    .optional(),
   profileUrl: Yup.string()
     .matches(/^twintik\.com\/[a-z0-9]+$/, 'Profile URL must be lowercase letters and numbers only')
     .required('Profile URL is required'),
-  email: Yup.string().email('Invalid email address').required('Email is required'),
-  phone: Yup.string().required('Primary Phone Number is required'),
-  phoneCountry: Yup.string().required('Country is required'),
+  email: Yup.string()
+    .email('Invalid email address')
+    .required('Email is required'),
+  phone: Yup.string()
+    .required('Primary Phone Number is required')
+    .test('phone-format', 'Please enter a valid phone number', function(value) {
+      if (!value) return false;
+      // Use the built-in validation from react-phone-number-input
+      return isValidPhoneNumber(value);
+    }),
+  bio: Yup.string()
+    .max(500, 'Bio cannot exceed 500 characters')
+    .optional(),
+  // Validate additional emails
+  additionalEmails: Yup.array().of(
+    Yup.string().email('Invalid email address').optional()
+  ),
+  // Validate additional phones
+  additionalPhones: Yup.array().of(
+    Yup.string().test('phone-format', 'Please enter a valid phone number', function(value) {
+      console.log('Validating additional phone:', value); // Debug log
+      
+      // If the field is empty, it's valid (optional field)
+      if (!value || value.trim() === '') {
+        console.log('Empty phone field - valid'); // Debug log
+        return true;
+      }
+      
+      // If there's a value, it must be a valid phone number
+      const isValid = isValidPhoneNumber(value);
+      console.log('Phone validation result:', isValid); // Debug log
+      
+      if (!isValid) {
+        console.log('Invalid phone number detected:', value); // Debug log
+        return this.createError({ message: 'Please enter a valid phone number' });
+      }
+      return true;
+    })
+  ),
+  // Validate social links
+  socialLinks: Yup.object().shape({
+    linkedin: Yup.string()
+      .test('linkedin-url', 'Please enter a valid URL starting with http', function(value) {
+        if (!value || value.trim() === '') return true; // Allow empty
+        return /^https?:\/\/.+/.test(value);
+      }),
+    twitter: Yup.string()
+      .test('twitter-url', 'Please enter a valid URL starting with http', function(value) {
+        if (!value || value.trim() === '') return true; // Allow empty
+        return /^https?:\/\/.+/.test(value);
+      }),
+    instagram: Yup.string()
+      .test('instagram-url', 'Please enter a valid URL starting with http', function(value) {
+        if (!value || value.trim() === '') return true; // Allow empty
+        return /^https?:\/\/.+/.test(value);
+      }),
+  }),
+  // Validate custom social links
+  customSocialLinks: Yup.array().of(
+    Yup.object().shape({
+      platform: Yup.string()
+        .min(1, 'Platform name is required')
+        .max(50, 'Platform name cannot exceed 50 characters'),
+      url: Yup.string()
+        .test('url-format', 'Please enter a valid URL', function(value) {
+          if (!value || value.trim() === '') return true; // Allow empty
+          return /^https?:\/\/.+/.test(value);
+        })
+    })
+  ),
 });
 
 const FFUserProfileSetup: React.FC = () => {
@@ -104,7 +181,6 @@ const FFUserProfileSetup: React.FC = () => {
     email: '',
     additionalEmails: [''],
     phone: '',
-    phoneCountry: 'AE',
     additionalPhones: [''],
     address: {
       street: '',
@@ -116,15 +192,13 @@ const FFUserProfileSetup: React.FC = () => {
     socialLinks: {
       linkedin: '',
       twitter: '',
-      facebook: '',
-      instagram: '',
-      youtube: '',
-      github: ''
+      instagram: ''
     },
     customSocialLinks: [],
     profilePicture: '',
     bio: ''
   });
+
 
   // Simulate token validation
   useEffect(() => {
@@ -211,7 +285,6 @@ const FFUserProfileSetup: React.FC = () => {
              email: mockUser.profileData.email || '',
              additionalEmails: mockUser.profileData.additionalEmails || [''],
              phone: mockUser.profileData.phone || '',
-             phoneCountry: '', // Do not prefill phoneCountry from mock data
              additionalPhones: mockUser.profileData.additionalPhones || [''],
              address: {
                street: mockUser.profileData.address?.street || '',
@@ -223,10 +296,7 @@ const FFUserProfileSetup: React.FC = () => {
              socialLinks: {
                linkedin: mockUser.profileData.socialLinks?.linkedin || '',
                twitter: mockUser.profileData.socialLinks?.twitter || '',
-               facebook: mockUser.profileData.socialLinks?.facebook || '',
-               instagram: mockUser.profileData.socialLinks?.instagram || '',
-               youtube: mockUser.profileData.socialLinks?.youtube || '',
-               github: mockUser.profileData.socialLinks?.github || ''
+               instagram: mockUser.profileData.socialLinks?.instagram || ''
              },
              customSocialLinks: mockUser.profileData.customSocialLinks || [],
              profilePicture: mockUser.profileData.profilePicture || '',
@@ -294,67 +364,193 @@ const FFUserProfileSetup: React.FC = () => {
     }));
   };
 
+  // Helper function to extract country code from phone number
+  const extractCountryFromPhone = (phoneNumber: string): string => {
+    if (!phoneNumber) return 'AE';
+    
+    // Extract country code from phone number
+    const countryCodeMatch = phoneNumber.match(/^\+(\d+)/);
+    if (countryCodeMatch) {
+      const code = countryCodeMatch[1];
+      // Map common country codes
+      const countryMap: { [key: string]: string } = {
+        '971': 'AE', // UAE
+        '91': 'IN',  // India
+        '1': 'US',   // USA
+        '44': 'GB',  // UK
+        '33': 'FR',  // France
+        '49': 'DE',  // Germany
+        '61': 'AU',  // Australia
+        '86': 'CN',  // China
+        '81': 'JP',  // Japan
+        '82': 'KR',  // South Korea
+      };
+      return countryMap[code] || 'AE';
+    }
+    return 'AE';
+  };
+
+  // Helper function to convert profile picture to base64
+  const convertImageToBase64 = (imageUrl: string): string => {
+    if (!imageUrl) return '';
+    
+    // If it's already a base64 string, return as is
+    if (imageUrl.startsWith('data:image')) {
+      return imageUrl;
+    }
+    
+    // For now, return empty string for external URLs
+    // In a real implementation, you'd fetch the image and convert to base64
+    return '';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Clear previous errors
+    setFormErrors({});
+    
+    console.log('Form data being validated:', formData); // Debug log
+    
+    // Manual validation for additional phones to debug
+    formData.additionalPhones.forEach((phone, index) => {
+      console.log(`Additional phone ${index}:`, phone);
+      if (phone && phone.trim() !== '') {
+        const isValid = isValidPhoneNumber(phone);
+        console.log(`Additional phone ${index} validation:`, isValid);
+        if (!isValid) {
+          console.log(`Additional phone ${index} is invalid:`, phone);
+        }
+      }
+    });
+    
     // Validate form
     try {
       await validationSchema.validate(formData, { abortEarly: false });
-      setFormErrors({});
     } catch (err: any) {
+      console.log('Validation failed with error:', err); // Debug log
       if (err.inner) {
         const errors: { [key: string]: string } = {};
         err.inner.forEach((validationError: any) => {
           if (validationError.path) {
-            errors[validationError.path] = validationError.message;
+            // Handle array field errors (additionalPhones, additionalEmails, customSocialLinks)
+            if (validationError.path.includes('[') && validationError.path.includes(']')) {
+              // Extract the array field name and index
+              const match = validationError.path.match(/^(\w+)\[(\d+)\]\.?(\w+)?$/);
+              if (match) {
+                const [, fieldName, index, subField] = match;
+                if (subField) {
+                  errors[`${fieldName}.${index}.${subField}`] = validationError.message;
+                } else {
+                  errors[`${fieldName}.${index}`] = validationError.message;
+                }
+              } else {
+                errors[validationError.path] = validationError.message;
+              }
+            } else {
+              errors[validationError.path] = validationError.message;
+            }
           }
         });
+        console.log('Validation errors:', errors); // Debug log
+        console.log('Original validation error paths:', err.inner.map((e: any) => e.path)); // Debug log
+        console.log('All validation errors:', err.inner); // Debug log
         setFormErrors(errors);
+        
+        // Scroll to first error
+        const firstErrorField = document.querySelector('[data-error="true"]');
+        if (firstErrorField) {
+          firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
       }
       return;
     }
+    
     setSaving(true);
     try {
-      // Generate a random strong password
-      const randomPassword = Math.random().toString(36).slice(-8) + 'A1!';
-      // Country dial codes
-      const countryDialCodes: { [key: string]: string } = {
-        AE: '+971',
-        US: '+1',
-        IN: '+91',
-        GB: '+44',
-        CA: '+1',
-        AU: '+61',
-      };
-      // Format phone number as '+<code> <number>'
-      const formattedPhone = `${countryDialCodes[formData.phoneCountry] || ''} ${formData.phone.replace(/^0+/, '')}`;
-      // Prepare payload for register API
-      const payload = {
-        email: formData.email,
-        phoneNumber: {
-          value: formattedPhone,
-          country: formData.phoneCountry,
-        },
-        password: randomPassword,
+      // Construct API payload in the required format
+      const apiPayload = {
         fullName: formData.fullName,
-        username: formData.profileUrl.replace('twintik.com/', ''),
         jobTitle: formData.jobTitle,
         company: formData.company,
-        website: formData.website,
+        username: formData.profileUrl.replace('twintik.com/', ''),
+        email: formData.email,
+        bio: formData.bio || '',
+        website: formData.website || '',
+        address: {
+          street: formData.address.street || '',
+          city: formData.address.city || '',
+          state: formData.address.state || '',
+          zipCode: formData.address.zipCode || '',
+          country: formData.address.country || ''
+        },
+        additionalEmails: formData.additionalEmails.filter(email => email.trim() !== '').join(',') || '',
+        phoneNumber: {
+          value: formData.phone,
+          country: extractCountryFromPhone(formData.phone)
+        },
+        phoneNumbers: formData.additionalPhones
+          .filter(phone => phone.trim() !== '')
+          .map(phone => ({
+            value: phone,
+            country: extractCountryFromPhone(phone)
+          })),
+        socialLinks: [
+          // LinkedIn
+          ...(formData.socialLinks.linkedin ? [{
+            platform: 'linkedin',
+            url: formData.socialLinks.linkedin,
+            isPublic: true
+          }] : []),
+          // Twitter (as 'x')
+          ...(formData.socialLinks.twitter ? [{
+            platform: 'x',
+            url: formData.socialLinks.twitter,
+            isPublic: true
+          }] : []),
+          // Instagram
+          ...(formData.socialLinks.instagram ? [{
+            platform: 'instagram',
+            url: formData.socialLinks.instagram,
+            isPublic: true
+          }] : []),
+          // Custom social links
+          ...formData.customSocialLinks
+            .filter(link => link.platform.trim() !== '' && link.url.trim() !== '')
+            .map(link => ({
+              platform: link.platform.toLowerCase(),
+              url: link.url,
+              isPublic: true
+            }))
+        ],
+        profilePicture: convertImageToBase64(formData.profilePicture),
+        invitationId: invitationId
       };
-      debugger
-      // Call register API
-      const registerRes = await apiService.post('/auth/register', payload);
-      const newUserId = registerRes.data?.data?.user?.id;
-      // Mark invitation as completed and link userId
-      if (invitationId && newUserId) {
-        await apiService.post(`/invitation/${invitationId}/complete`, { userId: newUserId, status: 'completed' });
-        setFormData(prev => ({ ...prev, status: 'updated' }));
+
+      console.log('API Payload:', apiPayload);
+
+      // Call registerFromWeb API
+      try {
+        const registerRes = await apiService.post('/profile/registerFromWeb', apiPayload);
+        console.log('Registration successful:', registerRes);
+        
+        // Redirect to confirmation page
+        navigate(`/onboard/${token}/confirmation`, { 
+          state: { username: formData.profileUrl.replace('twintik.com/', '') } 
+        });
+      } catch (error) {
+        console.error('Registration failed:', error);
+        // Handle specific error cases
+        if (error.response?.data?.message) {
+          alert(error.response.data.message);
+        } else {
+          alert('Registration failed. Please try again.');
+        }
+      } finally {
+        setSaving(false);
       }
-      // Redirect to confirmation page
-      navigate(`/onboard/${token}/confirmation`, { state: { username: formData.profileUrl.replace('twintik.com/', '') } });
     } catch (error) {
       console.error('Failed to register user:', error);
-    } finally {
       setSaving(false);
     }
   };
@@ -422,7 +618,7 @@ const FFUserProfileSetup: React.FC = () => {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-6 space-y-8">
+          <form onSubmit={handleSubmit} className="p-6 space-y-8" noValidate>
             {/* Profile Picture Section */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
@@ -482,10 +678,16 @@ const FFUserProfileSetup: React.FC = () => {
                     type="text"
                     value={formData.fullName}
                     onChange={(e) => handleInputChange('fullName', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                      formErrors.fullName ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    data-error={!!formErrors.fullName}
                   />
                   {formErrors.fullName && (
-                    <p className="text-red-600 text-xs mt-1">{formErrors.fullName}</p>
+                    <p className="text-red-600 text-xs mt-1 flex items-center">
+                      <AlertCircle className="w-3 h-3 mr-1" />
+                      {formErrors.fullName}
+                    </p>
                   )}
                 </div>
                 <div>
@@ -496,10 +698,16 @@ const FFUserProfileSetup: React.FC = () => {
                     type="text"
                     value={formData.jobTitle}
                     onChange={(e) => handleInputChange('jobTitle', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                      formErrors.jobTitle ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    data-error={!!formErrors.jobTitle}
                   />
                   {formErrors.jobTitle && (
-                    <p className="text-red-600 text-xs mt-1">{formErrors.jobTitle}</p>
+                    <p className="text-red-600 text-xs mt-1 flex items-center">
+                      <AlertCircle className="w-3 h-3 mr-1" />
+                      {formErrors.jobTitle}
+                    </p>
                   )}
                 </div>
                 <div>
@@ -510,10 +718,16 @@ const FFUserProfileSetup: React.FC = () => {
                     type="text" 
                     value={formData.company}
                     onChange={(e) => handleInputChange('company', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                      formErrors.company ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    data-error={!!formErrors.company}
                   />
                   {formErrors.company && (
-                    <p className="text-red-600 text-xs mt-1">{formErrors.company}</p>
+                    <p className="text-red-600 text-xs mt-1 flex items-center">
+                      <AlertCircle className="w-3 h-3 mr-1" />
+                      {formErrors.company}
+                    </p>
                   )}
                 </div>
                 <div>
@@ -524,29 +738,45 @@ const FFUserProfileSetup: React.FC = () => {
                     type="url"
                     value={formData.website}
                     onChange={(e) => handleInputChange('website', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                      formErrors.website ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="https://yourwebsite.com"
+                    data-error={!!formErrors.website}
                   />
+                  {formErrors.website && (
+                    <p className="text-red-600 text-xs mt-1 flex items-center">
+                      <AlertCircle className="w-3 h-3 mr-1" />
+                      {formErrors.website}
+                    </p>
+                  )}
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Profile URL <span style={{ color: 'red' }}>*</span>
                   </label>
                   <div className="flex">
-                    <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+                    <span className={`inline-flex items-center px-3 rounded-l-md border border-r-0 bg-gray-50 text-gray-500 text-sm ${
+                      formErrors.profileUrl ? 'border-red-500' : 'border-gray-300'
+                    }`}>
                       twintik.com/
                     </span>
                     <input
                       type="text"
-                      required
                       value={formData.profileUrl.replace('twintik.com/', '')}
                       onChange={(e) => handleInputChange('profileUrl', `twintik.com/${e.target.value}`)}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-r-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className={`flex-1 px-3 py-2 border rounded-r-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                        formErrors.profileUrl ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       placeholder="yourusername"
+                      data-error={!!formErrors.profileUrl}
                     />
                   </div>
                   {formErrors.profileUrl && (
-                    <p className="text-red-600 text-xs mt-1">{formErrors.profileUrl}</p>
+                    <p className="text-red-600 text-xs mt-1 flex items-center">
+                      <AlertCircle className="w-3 h-3 mr-1" />
+                      {formErrors.profileUrl}
+                    </p>
                   )}
                 </div>
                 <div className="md:col-span-2">
@@ -557,9 +787,18 @@ const FFUserProfileSetup: React.FC = () => {
                     rows={3}
                     value={formData.bio}
                     onChange={(e) => handleInputChange('bio', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                      formErrors.bio ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="Tell us about yourself..."
+                    data-error={!!formErrors.bio}
                   />
+                  {formErrors.bio && (
+                    <p className="text-red-600 text-xs mt-1 flex items-center">
+                      <AlertCircle className="w-3 h-3 mr-1" />
+                      {formErrors.bio}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -575,19 +814,19 @@ const FFUserProfileSetup: React.FC = () => {
               <div className="space-y-4 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Primary Email *
+                    Primary Email <span style={{ color: 'red' }}>*</span>
                   </label>
                   <input
                     type="email"
                     value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="Enter your email address"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 cursor-not-allowed"
+                    placeholder="Email address (pre-filled from invitation)"
                     disabled={true}
+                    readOnly={true}
                   />
-                  {formErrors.email && (
-                    <p className="text-red-600 text-xs mt-1">{formErrors.email}</p>
-                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    This email address was provided in your invitation and cannot be changed
+                  </p>
                 </div>
                 
                 <div>
@@ -605,9 +844,18 @@ const FFUserProfileSetup: React.FC = () => {
                             newEmails[index] = e.target.value;
                             setFormData(prev => ({ ...prev, additionalEmails: newEmails }));
                           }}
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                            formErrors[`additionalEmails.${index}`] ? 'border-red-500' : 'border-gray-300'
+                          }`}
                           placeholder="sarah.j@example.com"
+                          data-error={!!formErrors[`additionalEmails.${index}`]}
                         />
+                        {formErrors[`additionalEmails.${index}`] && (
+                          <p className="text-red-600 text-xs mt-1 flex items-center">
+                            <AlertCircle className="w-3 h-3 mr-1" />
+                            {formErrors[`additionalEmails.${index}`]}
+                          </p>
+                        )}
                         {formData.additionalEmails.length > 1 && (
                           <button
                             type="button"
@@ -640,33 +888,23 @@ const FFUserProfileSetup: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Primary Phone Number <span style={{ color: 'red' }}>*</span>
                   </label>
-                  <div className="flex space-x-2">
-                    <select
-                      value={formData.phoneCountry}
-                      onChange={e => setFormData(prev => ({ ...prev, phoneCountry: e.target.value }))}
-                      className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    >
-                      <option value="">Country</option>
-                      <option value="US">US (+1)</option>
-                      <option value="IN">IN (+91)</option>
-                      <option value="AE">AE (+971)</option>
-                      <option value="GB">UK (+44)</option>
-                      <option value="CA">CA (+1)</option>
-                      <option value="AU">AU (+61)</option>
-                    </select>
-                    <input
-                      type="tel"
-                      value={formData.phone}
-                      onChange={(e) => handleInputChange('phone', e.target.value)}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      placeholder="Phone number"
-                    />
-                  </div>
+                  <PhoneInput
+                    international
+                    countryCallingCodeEditable={false}
+                    defaultCountry="AE"
+                    value={formData.phone}
+                    onChange={(value) => handleInputChange('phone', value || '')}
+                    placeholder="Enter phone number"
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                      formErrors.phone ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    data-error={!!formErrors.phone}
+                  />
                   {formErrors.phone && (
-                    <p className="text-red-600 text-xs mt-1">{formErrors.phone}</p>
-                  )}
-                  {formErrors.phoneCountry && (
-                    <p className="text-red-600 text-xs mt-1">{formErrors.phoneCountry}</p>
+                    <p className="text-red-600 text-xs mt-1 flex items-center">
+                      <AlertCircle className="w-3 h-3 mr-1" />
+                      {formErrors.phone}
+                    </p>
                   )}
                 </div>
                 
@@ -677,18 +915,31 @@ const FFUserProfileSetup: React.FC = () => {
                   <div className="space-y-2">
                     {formData.additionalPhones.map((phone, index) => (
                       <div key={index} className="flex items-center space-x-2">
-                        <input
-                          type="tel"
-                          value={phone}
-                          onChange={(e) => handleAdditionalPhoneChange(index, e.target.value)}
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                          placeholder="+1-555-0124"
-                        />
+                        <div className="flex-1">
+                          <PhoneInput
+                            international
+                            countryCallingCodeEditable={false}
+                            defaultCountry="AE"
+                            value={phone}
+                            onChange={(value) => handleAdditionalPhoneChange(index, value || '')}
+                            placeholder="Enter phone number"
+                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                              formErrors[`additionalPhones.${index}`] ? 'border-red-500' : 'border-gray-300'
+                            }`}
+                            data-error={!!formErrors[`additionalPhones.${index}`]}
+                          />
+                          {formErrors[`additionalPhones.${index}`] && (
+                            <p className="text-red-600 text-xs mt-1 flex items-center">
+                              <AlertCircle className="w-3 h-3 mr-1" />
+                              {formErrors[`additionalPhones.${index}`]}
+                            </p>
+                          )}
+                        </div>
                         {formData.additionalPhones.length > 1 && (
                           <button
                             type="button"
                             onClick={() => removeAdditionalPhone(index)}
-                            className="px-3 py-2 text-red-600 hover:text-red-800 transition-colors"
+                            className="px-3 py-2 text-red-600 hover:text-red-800 transition-colors self-start mt-2"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -789,9 +1040,18 @@ const FFUserProfileSetup: React.FC = () => {
                     type="url"
                     value={formData.socialLinks.linkedin}
                     onChange={(e) => handleSocialLinkChange('linkedin', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                      formErrors['socialLinks.linkedin'] ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="https://linkedin.com/in/yourprofile"
+                    data-error={!!formErrors['socialLinks.linkedin']}
                   />
+                  {formErrors['socialLinks.linkedin'] && (
+                    <p className="text-red-600 text-xs mt-1 flex items-center">
+                      <AlertCircle className="w-3 h-3 mr-1" />
+                      {formErrors['socialLinks.linkedin']}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
@@ -802,22 +1062,18 @@ const FFUserProfileSetup: React.FC = () => {
                     type="url"
                     value={formData.socialLinks.twitter}
                     onChange={(e) => handleSocialLinkChange('twitter', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                      formErrors['socialLinks.twitter'] ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="https://twitter.com/yourhandle"
+                    data-error={!!formErrors['socialLinks.twitter']}
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                    <Facebook className="w-4 h-4 mr-2 text-blue-600" />
-                    Facebook
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.socialLinks.facebook}
-                    onChange={(e) => handleSocialLinkChange('facebook', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="https://facebook.com/yourprofile"
-                  />
+                  {formErrors['socialLinks.twitter'] && (
+                    <p className="text-red-600 text-xs mt-1 flex items-center">
+                      <AlertCircle className="w-3 h-3 mr-1" />
+                      {formErrors['socialLinks.twitter']}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
@@ -828,35 +1084,18 @@ const FFUserProfileSetup: React.FC = () => {
                     type="url"
                     value={formData.socialLinks.instagram}
                     onChange={(e) => handleSocialLinkChange('instagram', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                      formErrors['socialLinks.instagram'] ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="https://instagram.com/yourhandle"
+                    data-error={!!formErrors['socialLinks.instagram']}
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                    <Youtube className="w-4 h-4 mr-2 text-red-600" />
-                    YouTube
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.socialLinks.youtube}
-                    onChange={(e) => handleSocialLinkChange('youtube', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="https://youtube.com/yourchannel"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                    <Github className="w-4 h-4 mr-2 text-gray-800" />
-                    GitHub
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.socialLinks.github}
-                    onChange={(e) => handleSocialLinkChange('github', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="https://github.com/yourusername"
-                  />
+                  {formErrors['socialLinks.instagram'] && (
+                    <p className="text-red-600 text-xs mt-1 flex items-center">
+                      <AlertCircle className="w-3 h-3 mr-1" />
+                      {formErrors['socialLinks.instagram']}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -882,9 +1121,18 @@ const FFUserProfileSetup: React.FC = () => {
                           newLinks[index] = { ...newLinks[index], platform: e.target.value };
                           setFormData(prev => ({ ...prev, customSocialLinks: newLinks }));
                         }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                          formErrors[`customSocialLinks.${index}.platform`] ? 'border-red-500' : 'border-gray-300'
+                        }`}
                         placeholder="e.g., TikTok, Snapchat, Medium"
+                        data-error={!!formErrors[`customSocialLinks.${index}.platform`]}
                       />
+                      {formErrors[`customSocialLinks.${index}.platform`] && (
+                        <p className="text-red-600 text-xs mt-1 flex items-center">
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          {formErrors[`customSocialLinks.${index}.platform`]}
+                        </p>
+                      )}
                     </div>
                     <div className="flex-1">
                       <label className="block text-xs font-medium text-gray-600 mb-1">
@@ -898,9 +1146,18 @@ const FFUserProfileSetup: React.FC = () => {
                           newLinks[index] = { ...newLinks[index], url: e.target.value };
                           setFormData(prev => ({ ...prev, customSocialLinks: newLinks }));
                         }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                          formErrors[`customSocialLinks.${index}.url`] ? 'border-red-500' : 'border-gray-300'
+                        }`}
                         placeholder="https://example.com/yourprofile"
+                        data-error={!!formErrors[`customSocialLinks.${index}.url`]}
                       />
+                      {formErrors[`customSocialLinks.${index}.url`] && (
+                        <p className="text-red-600 text-xs mt-1 flex items-center">
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          {formErrors[`customSocialLinks.${index}.url`]}
+                        </p>
+                      )}
                     </div>
                     <button
                       type="button"

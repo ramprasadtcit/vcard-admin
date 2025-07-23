@@ -192,7 +192,7 @@ const FFUserProfileConfirmation: React.FC = () => {
             onClick={() => window.open(username ? `https://twintik.com/${username}` : 'https://twintik.com', '_blank')}
             className="flex-1 inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-purple-600 hover:bg-purple-700 transition-colors"
           >
-            Visit Your Website
+            Visit your digital card
             <ArrowRight className="w-4 h-4 ml-2" />
           </button>
           <button

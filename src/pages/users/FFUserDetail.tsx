@@ -899,7 +899,7 @@ const FFUserDetail: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="font-semibold mb-1">NFC Configuration</div>
-                  <div className={`font-medium mb-1 ${invitationData?.nfcStatus === 'configured' ? 'text-green-700' : 'text-yellow-700'}`}>
+                  <div className={`font-medium mb-1 ${invitationData?.nfcStatus === 'configured' ? 'text-green-700' : 'text-yellow-700'}`}> 
                     {invitationData?.nfcStatus === 'configured' ? 'NFC Configuration Completed' : 'NFC Configuration Pending'}
                   </div>
                   <div className="text-xs text-gray-500">
@@ -907,6 +907,59 @@ const FFUserDetail: React.FC = () => {
                       ? `NFC card configured on ${invitationData?.nfcConfiguredAt ? formatDate(invitationData.nfcConfiguredAt) : 'N/A'}`
                       : "User's profile is complete. NFC card needs to be configured manually."
                     }
+                  </div>
+                </div>
+                {invitationData?.nfcStatus !== 'configured' && (
+                  <button 
+                    onClick={handleMarkAsConfigured}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md shadow-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  >
+                    Mark as Configured
+                  </button>
+                )}
+              </div>
+            </div>
+            {/* Onboarding Timeline */}
+            <div className="bg-white rounded-lg shadow p-6 md:col-span-2">
+              <div className="font-semibold mb-4 flex items-center">
+                <Clock className="w-5 h-5 mr-2 text-indigo-600" />
+                Onboarding Timeline
+              </div>
+              <div className="flex items-center justify-between space-x-4">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                  <div>
+                    <div className="font-medium text-sm">Invitation Sent</div>
+                    <div className="text-xs text-gray-500">
+                      {invitationData?.invitationSentAt ? formatDate(invitationData.invitationSentAt) : '-'}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                  <div>
+                    <div className="font-medium text-sm">Profile Completed</div>
+                    <div className="text-xs text-gray-500">
+                      {invitationData?.profileCompletedAt ? formatDate(invitationData.profileCompletedAt) : '-'}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {invitationData?.nfcStatus === 'configured' ? (
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                  ) : (
+                    <Clock className="w-5 h-5 text-yellow-500" />
+                  )}
+                  <div>
+                    <div className="font-medium text-sm">
+                      {invitationData?.nfcStatus === 'configured' ? 'NFC Completed' : 'NFC Pending'}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {invitationData?.nfcStatus === 'configured' 
+                        ? (invitationData?.nfcConfiguredAt ? formatDate(invitationData.nfcConfiguredAt) : 'N/A')
+                        : 'pending'
+                      }
+                    </div>
                   </div>
                 </div>
               </div>

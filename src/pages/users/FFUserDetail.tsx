@@ -182,6 +182,23 @@ const FFUserDetail: React.FC = () => {
     return value && value.trim() !== '' ? value : '-';
   };
 
+  // Function to generate initials from fullName
+  const getInitials = (fullName: string | undefined) => {
+    if (!fullName || fullName.trim() === '') return '??';
+    
+    const names = fullName.trim().split(' ');
+    if (names.length === 1) {
+      // If only one name, use first and last character
+      const name = names[0];
+      return name.length >= 2 ? `${name[0]}${name[name.length - 1]}`.toUpperCase() : name.toUpperCase();
+    }
+    
+    // Use first letter of first name and first letter of last name
+    const firstInitial = names[0][0] || '';
+    const lastInitial = names[names.length - 1][0] || '';
+    return `${firstInitial}${lastInitial}`.toUpperCase();
+  };
+
   if (isLoading) {
     return (
       <div className="text-center py-12">
@@ -204,7 +221,7 @@ const FFUserDetail: React.FC = () => {
 
     // Add a handler for copying the profile URL (now in scope)
     const handleCopyProfileUrl = () => {
-      const url = profile?.username ? `twintik.com/card/${profile.username}` : '';
+      const url = profile?.username ? `https://twintik.com/${profile.username}` : '';
       if (url) {
         navigator.clipboard.writeText(url);
         toast.success('Profile URL copied!');
@@ -422,71 +439,63 @@ const FFUserDetail: React.FC = () => {
           {/* Profile Picture and Basic Information Cards */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             {/* Profile Picture */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="font-semibold mb-4 flex items-center">
-                <User className="w-5 h-5 mr-2 text-purple-600" />
-                Profile Picture
+            <div className="bg-white rounded-lg shadow p-8">
+              <div className="font-semibold mb-6 flex items-center justify-center">
+                <User className="w-6 h-6 mr-2 text-purple-600" />
+                <span className="text-lg">Profile Picture</span>
               </div>
-              <div className="flex items-start space-x-4">
+              <div className="flex flex-col items-center space-y-4">
                 <div className="flex-shrink-0">
-                  <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center">
+                  <div className="w-32 h-32 bg-gray-200 rounded-full flex items-center justify-center shadow-lg">
                     {profile?.profilePicture ? (
                       <img 
                         src={profile.profilePicture} 
                         alt="Profile" 
-                        className="w-24 h-24 rounded-full object-cover"
+                        className="w-32 h-32 rounded-full object-cover shadow-lg border-4 border-white"
                       />
                     ) : (
-                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
+                      <div className="w-32 h-32 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg border-4 border-white">
+                        <span className="text-white text-3xl font-bold">
+                          {getInitials(profile?.fullName)}
+                        </span>
+                      </div>
                     )}
                   </div>
                 </div>
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Profile Picture URL</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    value={editMode ? (profile?.profilePicture || '') : displayValue(profile?.profilePicture)}
-                    disabled={!editMode}
-                    onChange={e => handleChange('profilePicture', e.target.value)}
-                    placeholder="https://images.unsplash.com/photo-1494790108755-2618bd612b7b"
-                  />
+                <div className="text-center">
+                  <div className="text-lg font-semibold text-gray-800">
+                    {profile?.profilePicture ? (
+                      <span className="text-green-600">✓ Profile picture is set</span>
+                    ) : (
+                      <span className="text-gray-700">{profile?.fullName || 'User Name'}</span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Basic Information */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="font-semibold mb-4 flex items-center">
-                <User className="w-5 h-5 mr-2 text-blue-600" />
-                Basic Information
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    value={editMode ? (profile?.fullName || '') : displayValue(profile?.fullName)}
-                    disabled={!editMode}
-                    onChange={e => handleChange('fullName', e.target.value)}
-                  />
+            {/* QR Code Section */}
+            {profile?.qrCodeUrl && (
+              <div className="bg-white rounded-lg shadow p-6 flex flex-col items-center justify-center">
+                <div className="font-semibold mb-4 flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="7" height="7" rx="1.5" strokeWidth="2" />
+                    <rect x="14" y="3" width="7" height="7" rx="1.5" strokeWidth="2" />
+                    <rect x="14" y="14" width="7" height="7" rx="1.5" strokeWidth="2" />
+                    <rect x="3" y="14" width="7" height="7" rx="1.5" strokeWidth="2" />
+                  </svg>
+                  Profile QR Code
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input
-                    type="email"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    value={editMode ? (profile?.email || '') : displayValue(profile?.email)}
-                    disabled={true}
-                    onChange={e => handleChange('email', e.target.value)}
-                  />
+                <img
+                  src={profile.qrCodeUrl}
+                  alt="Profile QR Code"
+                  className="w-40 h-40 object-contain border border-gray-200 rounded-lg"
+                />
+                <div className="mt-2 text-xs text-gray-500 break-all text-center">
+                  {`https://twintik.com/${profile.username}`}
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Profile and Contact Information Cards - Two Column Layout */}
@@ -540,7 +549,7 @@ const FFUserDetail: React.FC = () => {
                       <input
                         type="text"
                         className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                        value={profile?.username ? `twintik.com/card/${profile.username}` : '-'}
+                        value={profile?.username ? `twintik.com/${profile.username}` : '-'}
                         disabled
                       />
                       {profile?.username && (

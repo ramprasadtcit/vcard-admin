@@ -1,12 +1,12 @@
 import React from 'react';
-import ComingSoonOverlay from '../../components/ComingSoonOverlay';
+import { ComingSoonOverlay } from '../../components';
 
 const Broadcasts: React.FC = () => {
   return (
     <ComingSoonOverlay 
-      title="Broadcasts & Announcements"
-      description="Send platform-wide announcements and notifications"
-      phase="Q1 2024"
+      title="Broadcast Management"
+      description="Broadcast messaging and communication features are currently being developed."
+      phase="Phase 3"
     />
   );
 };

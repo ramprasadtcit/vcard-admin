@@ -40,7 +40,7 @@ const FFUserOnboarding: React.FC = () => {
   const location = useLocation();
   const { user: currentUser } = useAuth();
   const { addNotification } = useNotifications();
-  const { ffUsers, addFFUsers, updateFFUser, deleteFFUser, getStats } = useFFUsers();
+  const { ffUsers, addFFUsers, updateFFUser, deleteFFUser } = useFFUsers();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -105,8 +105,14 @@ const FFUserOnboarding: React.FC = () => {
     });
   }, [invitations, searchTerm, statusFilter]);
 
-  // Statistics - Clear and aligned with table status
-  const stats = useMemo(() => getStats(), [getStats]);
+  // Statistics - Dynamic calculation based on actual invitation data
+  const stats = useMemo(() => {
+    const invited = invitations.filter(user => getCurrentStatus(user) === 'invited').length;
+    const completed = invitations.filter(user => getCurrentStatus(user) === 'completed').length;
+    const inviteExpired = invitations.filter(user => getCurrentStatus(user) === 'expired').length;
+    
+    return { invited, completed, inviteExpired };
+  }, [invitations]);
 
   // Only Super Admin can access this page
   if (currentUser?.role !== 'super_admin') {
@@ -204,13 +210,35 @@ const FFUserOnboarding: React.FC = () => {
     if (!selectedUser) return;
     setDeleting(true);
     try {
-      await apiService.delete(`/invitation/${selectedUser._id}`);
+      const response = await apiService.delete(`/invitation/${selectedUser._id}`);
       fetchInvitations();
       setShowDeleteModal(false);
       setSelectedUser(null);
-      toast.success('Invitation deleted successfully');
-    } catch (error) {
-      toast.error('Failed to delete invitation');
+      
+      // Show appropriate success message based on what was deleted
+      const message = response.data.message || 'Invitation deleted successfully';
+      toast.success(message);
+      
+      // Add notification for important deletions
+      if (selectedUser.userId) {
+        addNotification({
+          type: 'success',
+          title: 'User Profile Deleted',
+          message: `${selectedUser.username}'s profile and all associated data have been permanently deleted.`,
+          isRead: false,
+          userId: currentUser?.id || '',
+        });
+      }
+    } catch (error: any) {
+      const errorMsg = error?.response?.data?.error || 'Failed to delete invitation';
+      toast.error(errorMsg);
+      addNotification({
+        type: 'error',
+        title: 'Deletion Failed',
+        message: errorMsg,
+        isRead: false,
+        userId: currentUser?.id || '',
+      });
     } finally {
       setDeleting(false);
     }
@@ -234,6 +262,32 @@ const FFUserOnboarding: React.FC = () => {
         {status === 'invited' ? 'Invited' : 
          status === 'completed' ? 'Completed' : 
          status === 'expired' ? 'Invite Expired' : status}
+      </span>
+    );
+  };
+
+  const getNFCStatusBadge = (nfcStatus: string | undefined) => {
+    if (!nfcStatus) {
+      return <span className="text-gray-400 text-sm">-</span>;
+    }
+
+    const nfcStatusConfig = {
+      pending: { color: 'bg-yellow-100 text-yellow-800', text: 'Pending' },
+      configured: { color: 'bg-blue-100 text-blue-800', text: 'Configured' },
+      shipped: { color: 'bg-purple-100 text-purple-800', text: 'Shipped' },
+      delivered: { color: 'bg-green-100 text-green-800', text: 'Delivered' },
+      failed: { color: 'bg-red-100 text-red-800', text: 'Failed' },
+    };
+
+    const config = nfcStatusConfig[nfcStatus as keyof typeof nfcStatusConfig];
+    
+    if (!config) {
+      return <span className="text-gray-400 text-sm">{nfcStatus}</span>;
+    }
+
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
+        {config.text}
       </span>
     );
   };
@@ -279,7 +333,9 @@ const FFUserOnboarding: React.FC = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Invited</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.invited}</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {loadingInvitations ? '...' : stats.invited}
+              </p>
             </div>
           </div>
         </div>
@@ -291,7 +347,9 @@ const FFUserOnboarding: React.FC = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Completed</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.completed}</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {loadingInvitations ? '...' : stats.completed}
+              </p>
             </div>
           </div>
         </div>
@@ -303,7 +361,9 @@ const FFUserOnboarding: React.FC = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Invite Expired</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.inviteExpired}</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {loadingInvitations ? '...' : stats.inviteExpired}
+              </p>
             </div>
           </div>
         </div>
@@ -383,8 +443,7 @@ const FFUserOnboarding: React.FC = () => {
                     {getStatusBadge(getCurrentStatus(user))}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {/* You can add nfcStatus or other fields here if needed */}
-                    {user.nfcStatus || '-'}
+                    {getNFCStatusBadge(user.nfcStatus)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {user.updatedAt ? new Date(user.updatedAt).toLocaleDateString() : 'Not available'}
@@ -535,9 +594,41 @@ const FFUserOnboarding: React.FC = () => {
                 </div>
               </div>
               
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <p className="text-sm font-medium text-gray-700 mb-2">User Details:</p>
+                <div className="space-y-1 text-sm text-gray-600">
+                  <p><strong>Name:</strong> {selectedUser?.username}</p>
+                  <p><strong>Email:</strong> {selectedUser?.emailAddress}</p>
+                  <p><strong>Status:</strong> {getCurrentStatus(selectedUser) === 'invited' ? 'Invited' : 
+                                             getCurrentStatus(selectedUser) === 'completed' ? 'Completed' : 'Invite Expired'}</p>
+                </div>
+              </div>
+              
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                <div className="flex items-start">
+                  <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" />
+                  <div>
+                    <h4 className="text-sm font-medium text-red-800 mb-2">What will be deleted:</h4>
+                    <ul className="text-sm text-red-700 space-y-1">
+                      <li>• Invitation record</li>
+                      {selectedUser?.userId && (
+                        <>
+                          <li>• Complete user profile and account</li>
+                          <li>• All uploaded images (profile picture, background, logo)</li>
+                          <li>• QR code and all generated assets</li>
+                          <li>• All analytics and activity logs</li>
+                        </>
+                      )}
+                    </ul>
+                    <p className="text-sm text-red-800 font-medium mt-3">
+                      This action cannot be undone.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
               <p className="text-gray-700 mb-6">
-                Are you sure you want to delete <strong>{selectedUser.username}</strong>? 
-                This will permanently remove their profile and all associated data.
+                Are you sure you want to permanently delete <strong>{selectedUser?.username}</strong>?
               </p>
               
               <div className="flex justify-end space-x-3">
@@ -555,7 +646,7 @@ const FFUserOnboarding: React.FC = () => {
                   disabled={deleting}
                   className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {deleting ? 'Deleting...' : 'Delete User'}
+                  {deleting ? 'Deleting...' : selectedUser?.userId ? 'Delete Profile & Data' : 'Delete Invitation'}
                 </button>
               </div>
             </div>

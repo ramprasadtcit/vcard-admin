@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Users, 
   UserPlus, 
@@ -37,6 +37,7 @@ interface Invitation {
 
 const FFUserOnboarding: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user: currentUser } = useAuth();
   const { addNotification } = useNotifications();
   const { ffUsers, addFFUsers, updateFFUser, deleteFFUser, getStats } = useFFUsers();
@@ -67,6 +68,14 @@ const FFUserOnboarding: React.FC = () => {
   useEffect(() => {
     fetchInvitations();
   }, []);
+
+  useEffect(() => {
+    if (location.state?.showToast) {
+      toast.success('User profile updated successfully');
+      // Remove the state so the toast doesn't show again on refresh
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate]);
 
   // Helper function to get current status (including expired)
   const getCurrentStatus = (user: Invitation) => {
@@ -180,7 +189,8 @@ const FFUserOnboarding: React.FC = () => {
 
   const handleEditUser = (invitation: Invitation) => {
     const idToUse = invitation.status === 'completed' && invitation.userId ? invitation.userId : invitation._id;
-    navigate(`/admin/fnf-onboarding/user/${idToUse}/edit`);
+    // Navigate to FFUserDetail with edit state
+    navigate(`/admin/fnf-onboarding/user/${idToUse}`, { state: { edit: true } });
   };
 
   // Edit functionality is now combined with view in the profile modal

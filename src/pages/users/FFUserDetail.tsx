@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   ArrowLeft, 
   User, 
@@ -11,12 +11,18 @@ import {
   AlertCircle,
   Pencil,
   Save,
-  X as Close
+  X as Close,
+  Plus,
+  X,
+  Copy
 } from 'lucide-react';
 import apiService from '../../services/api';
+import api from '../../services/api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import UserAvatar from '../../components/UserAvatar';
+import PhoneInput from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 
 interface Invitation {
   _id: string;
@@ -63,13 +69,24 @@ interface UserProfile {
 const FFUserDetail: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [invitation, setInvitation] = useState<Invitation | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [authError, setAuthError] = useState('');
   const [editMode, setEditMode] = useState(false);
   const [editedProfile, setEditedProfile] = useState<UserProfile | null>(null);
+  // Add state for additionalPhones for edit mode
+  const [additionalPhones, setAdditionalPhones] = useState<{ value: string, country: string }[]>([]);
+  const [additionalEmails, setAdditionalEmails] = useState<string[]>([]);
 
+  useEffect(() => {
+    if (location.state?.editMode || location.state?.edit) {
+      setEditMode(true);
+    }
+  }, [location.state]);
+
+  console.info(editMode,'edit')
   useEffect(() => {
     const fetchData = async () => {
       if (!userId) return;
@@ -95,6 +112,30 @@ const FFUserDetail: React.FC = () => {
     };
     fetchData();
   }, [userId]);
+
+  useEffect(() => {
+    // Initialize additionalPhones from profile in edit mode
+    if (userProfile && userProfile.data && userProfile.data.user && Array.isArray(userProfile.data.user.phoneNumbers)) {
+      setAdditionalPhones(userProfile.data.user.phoneNumbers.map((p: { value: string, country: string }) => ({ value: p.value, country: p.country || '' })));
+    }
+    // Initialize additionalEmails from profile in edit mode
+    if (userProfile && userProfile.data && userProfile.data.user) {
+      const emails = userProfile.data.user.additionalEmails;
+      if (Array.isArray(emails)) {
+        setAdditionalEmails(emails);
+      } else if (typeof emails === 'string' && emails.trim()) {
+        setAdditionalEmails(emails.split(',').map((e: string) => e.trim()).filter((e: string) => e));
+      } else {
+        setAdditionalEmails([]);
+      }
+    }
+  }, [userProfile]);
+
+  useEffect(() => {
+    if (editMode && userProfile && userProfile.data && userProfile.data.user) {
+      setEditedProfile({ ...userProfile.data.user });
+    }
+  }, [editMode, userProfile]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -161,6 +202,15 @@ const FFUserDetail: React.FC = () => {
       (l: { platform: string; url: string }) => ['linkedin','x','instagram'].includes(l.platform)
     ) || [];
 
+    // Add a handler for copying the profile URL (now in scope)
+    const handleCopyProfileUrl = () => {
+      const url = profile?.username ? `twintik.com/card/${profile.username}` : '';
+      if (url) {
+        navigator.clipboard.writeText(url);
+        toast.success('Profile URL copied!');
+      }
+    };
+
     const handleEdit = () => {
       setEditMode(true);
       setEditedProfile({ ...userProfile.data.user });
@@ -210,10 +260,101 @@ const FFUserDetail: React.FC = () => {
       });
     };
 
+    const handlePrimaryPhoneChange = (value: string) => {
+      setEditedProfile(prev => prev ? {
+        ...prev,
+        phoneNumber: { value, country: prev.phoneNumber?.country || '' }
+      } : prev);
+    };
+
+    const handleAdditionalPhoneChange = (index: number, value: string, country: string) => {
+      setAdditionalPhones(prev => {
+        const updated = [...prev];
+        updated[index] = { value, country };
+        return updated;
+      });
+    };
+
+    const addAdditionalPhone = () => {
+      setAdditionalPhones(prev => [...prev, { value: '', country: '' }]);
+    };
+
+    const removeAdditionalPhone = (index: number) => {
+      setAdditionalPhones(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleAdditionalEmailChange = (index: number, value: string) => {
+      setAdditionalEmails(prev => {
+        const updated = [...prev];
+        updated[index] = value;
+        return updated;
+      });
+    };
+
+    const addAdditionalEmail = () => {
+      setAdditionalEmails(prev => [...prev, '']);
+    };
+
+    const removeAdditionalEmail = (index: number) => {
+      setAdditionalEmails(prev => prev.filter((_, i) => i !== index));
+    };
+
     const handleSave = async () => {
-      setEditMode(false);
-      setEditedProfile(null);
-      toast.success('Profile updated (not persisted in this demo)');
+      if (!userProfile || !userProfile.data || !userProfile.data.user) return;
+      const userId = userProfile.data.user._id || userProfile.data.user.id;
+      // Prepare the updated data
+      const updatedData = {
+        ...editedProfile,
+        phoneNumbers: additionalPhones.map(p => ({ value: p.value, country: p.country })),
+        // Send additionalEmails as array
+        additionalEmails: additionalEmails.filter(e => e.trim()).join(', '),
+        updatedBy: 'superadmin', // Always send 'superadmin' from FFUserDetail
+      };
+      // Remove fields that should not be updated
+      const fieldsToRemove = [
+        '_id', 'id', 'createdAt', 'updatedAt', '__v', 'stats', 'qrCodeUrl', 'googleWallet'
+      ];
+      fieldsToRemove.forEach(field => {
+        delete updatedData[field];
+      });
+      try {
+        // Clean the payload to remove undefined/null fields
+        const cleanData = Object.fromEntries(Object.entries(updatedData).filter(([_, v]) => v !== undefined && v !== null));
+        console.info(cleanData)
+        const response = await api.put(`/profile/admin/${userId}`, cleanData, {
+          headers: { 'x-twintik-client': 'web' }
+        });
+        toast.success('User profile updated successfully');
+        // Update local state with new data
+        setUserProfile((prev: any) => ({
+          ...prev,
+          data: {
+            ...prev.data,
+            user: response.data.user
+          }
+        }));
+        setEditMode(false);
+        setEditedProfile(null);
+        // Re-initialize additionalPhones and additionalEmails from updated data
+        if (response.data.user) {
+          setAdditionalPhones(Array.isArray(response.data.user.phoneNumbers)
+            ? response.data.user.phoneNumbers.map((p: { value: string, country: string }) => ({ value: p.value, country: p.country || '' }))
+            : []);
+          const emails = response.data.user.additionalEmails;
+          if (Array.isArray(emails)) {
+            setAdditionalEmails(emails);
+          } else if (typeof emails === 'string' && emails.trim()) {
+            setAdditionalEmails(emails.split(',').map((e: string) => e.trim()).filter((e: string) => e));
+          } else {
+            setAdditionalEmails([]);
+          }
+        }
+        // Navigate to previous screen and pass showToast state
+        navigate('/admin/fnf-onboarding', { state: { showToast: true } });
+      } catch (error: any) {
+        const errorMsg = error?.response?.data?.message || 'Failed to update user profile';
+        toast.error(errorMsg);
+      }
     };
 
     const handleMarkAsConfigured = async () => {
@@ -398,12 +539,19 @@ const FFUserDetail: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Profile URL</label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                      value={profile?.username ? `twintik.com/card/${profile.username}` : '-'}
-                      disabled
-                    />
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="text"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+                        value={profile?.username ? `twintik.com/card/${profile.username}` : '-'}
+                        disabled
+                      />
+                      {profile?.username && (
+                        <button type="button" onClick={handleCopyProfileUrl} className="p-2 hover:bg-gray-200 rounded">
+                          <Copy className="w-4 h-4 text-gray-600" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
                 
@@ -445,58 +593,157 @@ const FFUserDetail: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Additional Emails</label>
-                  {(() => {
-                    const emails = profile?.additionalEmails ? profile.additionalEmails.split(',').map(e => e.trim()).filter(e => e) : [];
-                    if (emails.length === 0) {
-                      return (
+                  {editMode ? (
+                    <div className="space-y-2">
+                      {additionalEmails.map((email, index) => (
+                        <div key={index} className="flex items-center space-x-2">
+                          <input
+                            type="email"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-2"
+                            value={email}
+                            onChange={e => handleAdditionalEmailChange(index, e.target.value)}
+                            placeholder="Enter additional email"
+                          />
+                          {additionalEmails.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeAdditionalEmail(index)}
+                              className="px-3 py-2 text-red-600 hover:text-red-800 transition-colors self-start mt-2"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={addAdditionalEmail}
+                        className="text-sm text-purple-600 hover:text-purple-800 flex items-center transition-colors"
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Add additional email
+                      </button>
+                    </div>
+                  ) : (
+                    (() => {
+                      const emails = profile?.additionalEmails ? profile.additionalEmails.split(',').map((e: string) => e.trim()).filter((e: string) => e) : [];
+                      if (emails.length === 0) {
+                        return (
+                          <input
+                            type="text"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            value={editMode ? '' : '-'}
+                            disabled={!editMode}
+                            onChange={e => handleChange('additionalEmails', e.target.value)}
+                          />
+                        );
+                      }
+                      return emails.map((email: string, index: number) => (
                         <input
-                          type="text"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          value={editMode ? '' : '-'}
+                          key={index}
+                          type="email"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-2"
+                          value={editMode ? email : email}
                           disabled={!editMode}
-                          onChange={e => handleChange('additionalEmails', e.target.value)}
+                          onChange={e => {
+                            const newEmails = [...emails];
+                            newEmails[index] = e.target.value;
+                            handleChange('additionalEmails', newEmails.join(', '));
+                          }}
                         />
-                      );
-                    }
-                    return emails.map((email, index) => (
-                      <input
-                        key={index}
-                        type="email"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-2"
-                        value={editMode ? email : email}
-                        disabled={!editMode}
-                        onChange={e => {
-                          const newEmails = [...emails];
-                          newEmails[index] = e.target.value;
-                          handleChange('additionalEmails', newEmails.join(', '));
-                        }}
-                      />
-                    ));
-                  })()}
+                      ));
+                    })()
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Primary Phone</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    value={editMode ? (profile?.phoneNumber?.value || '') : displayValue(profile?.phoneNumber?.value)}
-                    disabled={!editMode}
-                    onChange={e => handleNestedChange('phoneNumber', 'value', e.target.value)}
-                  />
+                  {editMode ? (
+                    <PhoneInput
+                      international
+                      countryCallingCodeEditable={false}
+                      defaultCountry="AE"
+                      value={editedProfile?.phoneNumber?.value || ''}
+                      onChange={handlePrimaryPhoneChange}
+                      placeholder="Enter phone number"
+                      className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300"
+                    />
+                  ) : (
+                    <PhoneInput
+                      international
+                      countryCallingCodeEditable={false}
+                      defaultCountry="AE"
+                      value={profile?.phoneNumber?.value || ''}
+                      onChange={() => {}}
+                      disabled
+                      className="w-full px-3 py-2 border rounded-md bg-gray-50 border-gray-200"
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Additional Phones</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    value={editMode
-                      ? (Array.isArray(profile?.phoneNumbers) ? profile.phoneNumbers.map((p: { value: string; country: string }) => p.value).join(', ') : '')
-                      : (Array.isArray(profile?.phoneNumbers) && profile.phoneNumbers.length > 0
-                          ? profile.phoneNumbers.map((p: { value: string; country: string }) => p.value).join(', ')
-                          : '-')}
-                    disabled={!editMode}
-                    onChange={e => handleChange('phoneNumbers', e.target.value.split(',').map((s: string) => ({ value: s.trim(), country: '' })))}
-                  />
+                  {editMode ? (
+                    <div className="space-y-2">
+                      {additionalPhones.map((phone, index) => (
+                        <div key={index} className="flex items-center space-x-2">
+                          <div className="flex-1">
+                            <PhoneInput
+                              international
+                              countryCallingCodeEditable={false}
+                              defaultCountry={(phone.country && phone.country.length === 2 ? phone.country : 'AE') as any}
+                              value={phone.value}
+                              onChange={value => {
+                                // Always use a valid country code
+                                const country = phone.country && phone.country.length === 2 ? phone.country : 'AE';
+                                handleAdditionalPhoneChange(index, value || '', country);
+                              }}
+                              onCountryChange={country => {
+                                handleAdditionalPhoneChange(index, phone.value, country || 'AE');
+                              }}
+                              placeholder="Enter phone number"
+                              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300"
+                            />
+                          </div>
+                          {additionalPhones.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeAdditionalPhone(index)}
+                              className="px-3 py-2 text-red-600 hover:text-red-800 transition-colors self-start mt-2"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={addAdditionalPhone}
+                        className="text-sm text-purple-600 hover:text-purple-800 flex items-center transition-colors"
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Add another phone number
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {(Array.isArray(profile?.phoneNumbers) && profile.phoneNumbers.length > 0
+                        ? profile.phoneNumbers
+                        : []).map((p: { value: string }, idx: number) => (
+                          <PhoneInput
+                            key={idx}
+                            international
+                            countryCallingCodeEditable={false}
+                            defaultCountry="AE"
+                            value={p.value}
+                            onChange={() => {}}
+                            disabled
+                            className="w-full px-3 py-2 border rounded-md bg-gray-50 border-gray-200"
+                          />
+                        ))}
+                      {(!profile?.phoneNumbers || profile.phoneNumbers.length === 0) && (
+                        <div className="text-gray-400 text-sm">No additional phones</div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -660,65 +907,12 @@ const FFUserDetail: React.FC = () => {
                     {invitationData?.nfcStatus === 'configured' ? 'NFC Configuration Completed' : 'NFC Configuration Pending'}
                   </div>
                   <div className="text-xs text-gray-500">
-                    {invitationData?.nfcStatus === 'configured' 
+                    {invitationData?.nfcStatus === 'configured'
                       ? `NFC card configured on ${invitationData?.nfcConfiguredAt ? formatDate(invitationData.nfcConfiguredAt) : 'N/A'}`
-                      : 'User\'s profile is complete. NFC card needs to be configured manually.'
+                      : "User's profile is complete. NFC card needs to be configured manually."
                     }
                   </div>
                 </div>
-                {invitationData?.nfcStatus !== 'configured' && (
-                  <button 
-                    onClick={handleMarkAsConfigured}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md shadow-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                  >
-                    Mark as Configured
-                  </button>
-                )}
-              </div>
-            </div>
-            {/* Onboarding Timeline */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="font-semibold mb-4 flex items-center">
-                <Clock className="w-5 h-5 mr-2 text-indigo-600" />
-                Onboarding Timeline
-              </div>
-              <div className="flex items-center justify-between space-x-4">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-green-500" />
-                  <div>
-                    <div className="font-medium text-sm">Invitation Sent</div>
-                    <div className="text-xs text-gray-500">
-                      {invitationData?.invitationSentAt ? formatDate(invitationData.invitationSentAt) : '-'}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-green-500" />
-                  <div>
-                    <div className="font-medium text-sm">Profile Completed</div>
-                    <div className="text-xs text-gray-500">
-                      {invitationData?.profileCompletedAt ? formatDate(invitationData.profileCompletedAt) : '-'}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {invitationData?.nfcStatus === 'configured' ? (
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                  ) : (
-                    <Clock className="w-5 h-5 text-yellow-500" />
-                  )}
-                  <div>
-                    <div className="font-medium text-sm">
-                      {invitationData?.nfcStatus === 'configured' ? 'NFC Completed' : 'NFC Pending'}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {invitationData?.nfcStatus === 'configured' 
-                        ? (invitationData?.nfcConfiguredAt ? formatDate(invitationData.nfcConfiguredAt) : 'N/A')
-                        : 'pending'
-                      }
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -726,248 +920,6 @@ const FFUserDetail: React.FC = () => {
       </>
     );
   }
-
-  // Show invitation details only if invitation exists and userProfile does not
-  if (invitation) {
-    const currentStatus = getCurrentStatus(invitation);
-    return (
-      <>
-        <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => navigate('/admin/fnf-onboarding')}
-                className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to List
-              </button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">{invitation.username}</h1>
-                <p className="text-gray-600">F&F User Invitation Details</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={() => navigate(`/admin/fnf-onboarding/user/${userId}/edit`)}
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-purple-700 bg-purple-100 border border-purple-200 rounded-md hover:bg-purple-200 hover:text-purple-800 transition-colors"
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                Edit Profile
-              </button>
-            </div>
-          </div>
-
-          {/* Status Overview */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center">
-                  <div className={`w-3 h-3 rounded-full mr-2 ${
-                    currentStatus === 'completed' ? 'bg-green-500' : 
-                    currentStatus === 'expired' ? 'bg-red-500' : 'bg-yellow-500'
-                  }`}></div>
-                  <span className="text-sm font-medium text-gray-700">
-                    Status: {currentStatus === 'completed' ? 'Profile Completed' : 
-                            currentStatus === 'expired' ? 'Invite Expired' : 'Pending'}
-                  </span>
-                </div>
-                {currentStatus === 'completed' && (
-                  <div className="flex items-center">
-                    <div className={`w-3 h-3 rounded-full mr-2 ${
-                      invitation.nfcStatus ? 'bg-green-500' : 'bg-gray-400'
-                    }`}></div>
-                    <span className="text-sm font-medium text-gray-700">
-                      NFC: {invitation.nfcStatus || 'Pending'}
-                    </span>
-                  </div>
-                )}
-              </div>
-              <div className="text-sm text-gray-500">
-                Invited: {invitation.createdAt ? formatDate(invitation.createdAt) : 'N/A'}
-              </div>
-            </div>
-          </div>
-
-          {authError && (
-            <div className="text-center text-red-600 font-semibold my-4">
-              {authError}
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Basic Information */}
-            <div className="bg-white border border-gray-200 rounded-lg p-6">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <User className="w-5 h-5 mr-2 text-blue-600" />
-                Basic Information
-              </h4>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                  <input
-                    type="text"
-                    value={invitation.username}
-                    disabled={true}
-                    className="w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-md"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                  <input
-                    type="email"
-                    value={invitation.emailAddress}
-                    disabled={true}
-                    className="w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-md"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                  <div className="mt-1">{getStatusBadge(currentStatus)}</div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">NFC Status</label>
-                  <input
-                    type="text"
-                    value={invitation.nfcStatus || 'Not configured'}
-                    disabled={true}
-                    className="w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-md"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Invitation Details */}
-            <div className="bg-white border border-gray-200 rounded-lg p-6">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <Mail className="w-5 h-5 mr-2 text-purple-600" />
-                Invitation Details
-              </h4>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Invitation ID</label>
-                  <input
-                    type="text"
-                    value={invitation._id}
-                    disabled={true}
-                    className="w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-md font-mono text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Token</label>
-                  <input
-                    type="text"
-                    value={invitation.token ? `${invitation.token.substring(0, 20)}...` : 'Not available'}
-                    disabled={true}
-                    className="w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-md font-mono text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Created At</label>
-                  <input
-                    type="text"
-                    value={invitation.createdAt ? formatDate(invitation.createdAt) : 'Not available'}
-                    disabled={true}
-                    className="w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-md"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Updated</label>
-                  <input
-                    type="text"
-                    value={invitation.updatedAt ? formatDate(invitation.updatedAt) : 'Not available'}
-                    disabled={true}
-                    className="w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-md"
-                  />
-                </div>
-                {invitation.tokenExpiresAt && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Token Expires At</label>
-                    <input
-                      type="text"
-                      value={formatDate(invitation.tokenExpiresAt)}
-                      disabled={true}
-                      className="w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-md"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Invitation Timeline */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <Calendar className="w-5 h-5 mr-2 text-indigo-600" />
-              Invitation Timeline
-            </h4>
-            <div className="space-y-4">
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-4">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-gray-900">Invitation Created</p>
-                  <p className="text-sm text-gray-600">
-                    {invitation.createdAt ? formatDate(invitation.createdAt) : 'N/A'}
-                  </p>
-                </div>
-              </div>
-              
-              {currentStatus === 'completed' && (
-                <div className="flex items-center">
-                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-4">
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">Profile Completed</p>
-                    <p className="text-sm text-gray-600">
-                      {invitation.updatedAt ? formatDate(invitation.updatedAt) : 'N/A'}
-                    </p>
-                  </div>
-                </div>
-              )}
-              
-              {currentStatus === 'expired' && (
-                <div className="flex items-center">
-                  <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center mr-4">
-                    <AlertCircle className="w-4 h-4 text-red-600" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">Invitation Expired</p>
-                    <p className="text-sm text-gray-600">
-                      {invitation.tokenExpiresAt ? formatDate(invitation.tokenExpiresAt) : 'N/A'}
-                    </p>
-                  </div>
-                </div>
-              )}
-              
-              {currentStatus === 'invited' && (
-                <div className="flex items-center">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-4">
-                    <Clock className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">Awaiting Response</p>
-                    <p className="text-sm text-gray-600">
-                      Invitation sent, waiting for user to complete profile
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  // If neither, show not found
-  return (
-    <div className="text-center text-red-500 font-semibold py-8">User or Invitation Not Found</div>
-  );
 };
 
-export default FFUserDetail; 
+export default FFUserDetail;

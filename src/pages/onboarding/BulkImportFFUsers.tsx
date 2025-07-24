@@ -124,6 +124,25 @@ const BulkImportFFUsers: React.FC = () => {
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [successCount, setSuccessCount] = useState(0);
 
+  // Function to clear file input and validation results
+  const clearFileAndResults = () => {
+    if (activeTab === 'invite') {
+      setInviteCsvFile(null);
+      setValidationResult(null);
+    } else {
+      setCreateCsvFile(null);
+      setFullUserValidationResult(null);
+    }
+    setSendResult(null);
+    setShowConfirmation(false);
+    
+    // Clear the actual file input element
+    const fileInput = document.getElementById('csv-file-upload') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  };
+
   const handleInviteFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && file.type === 'text/csv') {
@@ -487,14 +506,14 @@ const BulkImportFFUsers: React.FC = () => {
 
         if (newUsers.length === 0) {
           toast.warning('All users are already registered. No invitations will be sent.');
-          setShowConfirmation(false);
+          clearFileAndResults();
           return;
         }
 
         // Send invitations
         const result = await sendInvitations(newUsers);
         setSendResult(result);
-        setShowConfirmation(false);
+        clearFileAndResults();
 
         // Show success popup
         setSuccessCount(result.successCount);
@@ -515,14 +534,14 @@ const BulkImportFFUsers: React.FC = () => {
 
         if (validUsers.length === 0) {
           toast.warning('No valid new users to create.');
-          setShowConfirmation(false);
+          clearFileAndResults();
           return;
         }
 
         // Create full users
         const result = await createFullUsers(validUsers);
         setSendResult(result);
-        setShowConfirmation(false);
+        clearFileAndResults();
 
         // Show success popup
         setSuccessCount(result.successCount);
@@ -1075,8 +1094,8 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
               {(activeTab === 'invite' && validationResult?.newUsers === 0) || 
                (activeTab === 'create' && fullUserValidationResult?.validUsers === 0) ? (
                 // Show only Close button when no action needed
-                  <button
-                  onClick={() => setShowConfirmation(false)}
+                <button
+                  onClick={clearFileAndResults}
                   className="btn-secondary flex-1"
                   >
                   Close
@@ -1084,8 +1103,8 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
               ) : (
                 // Show Cancel and Confirm buttons for normal cases
                 <>
-                <button
-                    onClick={() => setShowConfirmation(false)}
+                  <button
+                    onClick={clearFileAndResults}
                     className="btn-secondary flex-1"
                     disabled={isProcessing}
                   >

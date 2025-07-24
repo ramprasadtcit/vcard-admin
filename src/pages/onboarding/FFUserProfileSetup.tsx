@@ -195,19 +195,19 @@ const validationSchema = Yup.object().shape({
   // Validate social links
   socialLinks: Yup.object().shape({
     linkedin: Yup.string()
-      .test('linkedin-url', 'Please enter a valid URL starting with http', function(value) {
+      .test('linkedin-url', 'Please enter a valid LinkedIn personal profile URL (e.g., https://www.linkedin.com/in/yourprofile)', function(value) {
         if (!value || value.trim() === '') return true; // Allow empty
-        return /^https?:\/\/.+/.test(value);
+        return /^https?:\/\/(www\.)?linkedin\.com\/in\/[^/?#]{3,}/.test(value);
       }),
-      x: Yup.string()
-    .test('x-url', 'Please enter a valid URL starting with http', function(value) {
+    x: Yup.string()
+      .test('x-url', 'Please enter a valid X (Twitter) URL (e.g., https://x.com/yourhandle)', function(value) {
         if (!value || value.trim() === '') return true; // Allow empty
-        return /^https?:\/\/.+/.test(value);
+        return /^https?:\/\/(www\.)?(x\.com|twitter\.com)\//.test(value);
       }),
     instagram: Yup.string()
-      .test('instagram-url', 'Please enter a valid URL starting with http', function(value) {
+      .test('instagram-url', 'Please enter a valid Instagram URL (e.g., https://instagram.com/yourhandle)', function(value) {
         if (!value || value.trim() === '') return true; // Allow empty
-        return /^https?:\/\/.+/.test(value);
+        return /^https?:\/\/(www\.)?instagram\.com\//.test(value);
       }),
   }),
   // Validate address fields
@@ -235,6 +235,13 @@ const validationSchema = Yup.object().shape({
         .min(1, 'Platform name is required')
         .max(50, 'Platform name cannot exceed 50 characters'),
       url: Yup.string()
+        .test('url-required-if-platform', 'Profile URL is required', function(value) {
+          const { platform } = this.parent;
+          if (platform && platform.trim() && (!value || !value.trim())) {
+            return this.createError({ message: 'Profile URL is required' });
+          }
+          return true;
+        })
         .test('url-format', 'Please enter a valid URL', function(value) {
           if (!value || value.trim() === '') return true; // Allow empty
           return /^https?:\/\/.+/.test(value);
@@ -1352,64 +1359,66 @@ const FFUserProfileSetup: React.FC = () => {
               </h3>
               <div className="space-y-3">
                 {formData.customSocialLinks.map((link, index) => (
-                  <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                    <div className="flex-1">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Platform Name
-                      </label>
-                      <input
-                        type="text"
-                        value={link.platform}
-                        onChange={(e) => {
-                          const newLinks = [...formData.customSocialLinks];
-                          newLinks[index] = { ...newLinks[index], platform: e.target.value };
-                          setFormData(prev => ({ ...prev, customSocialLinks: newLinks }));
-                        }}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                          formErrors[`customSocialLinks.${index}.platform`] ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                        placeholder="e.g., TikTok, Snapchat, Medium"
-                        data-error={!!formErrors[`customSocialLinks.${index}.platform`]}
-                      />
-                      {formErrors[`customSocialLinks.${index}.platform`] && (
-                        <p className="text-red-600 text-xs mt-1 flex items-center">
-                          <AlertCircle className="w-3 h-3 mr-1" />
-                          {formErrors[`customSocialLinks.${index}.platform`]}
-                        </p>
-                      )}
+                  <div key={index} className="p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-start space-x-3">
+                      <div className="flex-1">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Platform Name
+                        </label>
+                        <input
+                          type="text"
+                          value={link.platform}
+                          onChange={(e) => {
+                            const newLinks = [...formData.customSocialLinks];
+                            newLinks[index] = { ...newLinks[index], platform: e.target.value };
+                            setFormData(prev => ({ ...prev, customSocialLinks: newLinks }));
+                          }}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                            formErrors[`customSocialLinks.${index}.platform`] ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                          placeholder="e.g., TikTok, Snapchat, Medium"
+                          data-error={!!formErrors[`customSocialLinks.${index}.platform`]}
+                        />
+                        {formErrors[`customSocialLinks.${index}.platform`] && (
+                          <p className="text-red-600 text-xs mt-1 flex items-center">
+                            <AlertCircle className="w-3 h-3 mr-1" />
+                            {formErrors[`customSocialLinks.${index}.platform`]}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Profile URL
+                        </label>
+                        <input
+                          type="url"
+                          value={link.url}
+                          onChange={(e) => {
+                            const newLinks = [...formData.customSocialLinks];
+                            newLinks[index] = { ...newLinks[index], url: e.target.value };
+                            setFormData(prev => ({ ...prev, customSocialLinks: newLinks }));
+                          }}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                            formErrors[`customSocialLinks.${index}.url`] ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                          placeholder="https://example.com/yourprofile"
+                          data-error={!!formErrors[`customSocialLinks.${index}.url`]}
+                        />
+                        {formErrors[`customSocialLinks.${index}.url`] && (
+                          <p className="text-red-600 text-xs mt-1 flex items-center">
+                            <AlertCircle className="w-3 h-3 mr-1" />
+                            {formErrors[`customSocialLinks.${index}.url`]}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, customSocialLinks: prev.customSocialLinks.filter((_, i) => i !== index) }))}
+                        className="px-3 py-2 text-red-600 hover:text-red-800 transition-colors mt-6"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
-                    <div className="flex-1">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Profile URL
-                      </label>
-                      <input
-                        type="url"
-                        value={link.url}
-                        onChange={(e) => {
-                          const newLinks = [...formData.customSocialLinks];
-                          newLinks[index] = { ...newLinks[index], url: e.target.value };
-                          setFormData(prev => ({ ...prev, customSocialLinks: newLinks }));
-                        }}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                          formErrors[`customSocialLinks.${index}.url`] ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                        placeholder="https://example.com/yourprofile"
-                        data-error={!!formErrors[`customSocialLinks.${index}.url`]}
-                      />
-                      {formErrors[`customSocialLinks.${index}.url`] && (
-                        <p className="text-red-600 text-xs mt-1 flex items-center">
-                          <AlertCircle className="w-3 h-3 mr-1" />
-                          {formErrors[`customSocialLinks.${index}.url`]}
-                        </p>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, customSocialLinks: prev.customSocialLinks.filter((_, i) => i !== index) }))}
-                      className="px-3 py-2 text-red-600 hover:text-red-800 transition-colors self-end"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
                   </div>
                 ))}
                 <button

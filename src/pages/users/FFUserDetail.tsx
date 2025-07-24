@@ -581,8 +581,11 @@ const FFUserDetail: React.FC = () => {
           if (!link.platform || !link.platform.trim()) {
             errors[`customSocialLinkPlatform${idx}`] = 'Platform name is required';
           }
-          
-          // Validate URL if platform is provided
+          // If platform is filled but url is empty, show error for url
+          if (link.platform && link.platform.trim() && (!link.url || !link.url.trim())) {
+            errors[`customSocialLinkUrl${idx}`] = 'Profile URL is required';
+          }
+          // Validate URL if platform is provided and url is filled
           if (link.platform && link.platform.trim() && link.url && link.url.trim()) {
             if (!link.url.includes('http')) {
               errors[`customSocialLinkUrl${idx}`] = 'URL must start with http:// or https://';
@@ -1392,12 +1395,9 @@ const FFUserDetail: React.FC = () => {
               <div className="space-y-4">
                 {customSocialLinks.length > 0 ? (
                   customSocialLinks.map((l: { platform: string; url: string }, idx: number) => (
-                    <div key={idx} className="space-y-2">
-                      {/* <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-700">Custom Link {idx + 1}</span>
-                      </div> */}
-                      <div className="flex md:grid-cols-3 gap-3">
-                        <div>
+                    <div key={idx} className="p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-start space-x-3">
+                        <div className="flex-1">
                           <label className="block text-sm font-medium text-gray-700 mb-1">Platform Name</label>
                           <input
                             type="text"
@@ -1423,7 +1423,7 @@ const FFUserDetail: React.FC = () => {
                           )}
                         </div>
                         
-                        <div>
+                        <div className="flex-1">
                           <label className="block text-sm font-medium text-gray-700 mb-1">URL</label>
                           <input
                             type="text"
@@ -1450,11 +1450,11 @@ const FFUserDetail: React.FC = () => {
                         </div>
 
                         {editMode && (
-                          <div className="flex items-end">
+                          <div className="flex items-center">
                             <button
                               type="button"
                               onClick={() => removeCustomSocialLink(idx)}
-                              className="h-10 px-3 py-2 hover:bg-gray-200 rounded-md text-red-600 hover:text-red-800 transition-colors border border-gray-300"
+                              className="h-10 px-3 py-2 hover:bg-gray-200 rounded-md text-red-600 hover:text-red-800 transition-colors border border-gray-300 mt-6"
                               title="Remove custom social link"
                             >
                               <X className="w-4 h-4" />

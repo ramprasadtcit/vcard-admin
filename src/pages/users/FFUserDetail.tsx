@@ -549,32 +549,18 @@ const FFUserDetail: React.FC = () => {
         }
       }
       
-      // Social links validation (platform-specific, strict domain check)
+      // Social links validation (simple: must contain http or https if filled)
       if (editedProfile?.socialLinks) {
         editedProfile.socialLinks.forEach((link: any) => {
           if (link.url && link.url.trim()) {
             const url = link.url.trim();
-            const platform = (link.platform || '').toLowerCase();
-            if (platform === 'linkedin') {
-              if (!/^https?:\/\/(www\.)?linkedin\.com\/in\/[^/?#]{3,}/.test(url)) {
-                errors[`socialLink${link.platform}`] = 'Please enter a valid LinkedIn personal profile URL (e.g., https://www.linkedin.com/in/yourprofile)';
-              }
-            } else if (platform === 'x' || platform === 'twitter') {
-              if (!/^https?:\/\/(www\.)?(x\.com|twitter\.com)\//.test(url)) {
-                errors[`socialLink${link.platform}`] = 'Please enter a valid X (Twitter) URL (e.g., https://x.com/yourhandle)';
-              }
-            } else if (platform === 'instagram') {
-              if (!/^https?:\/\/(www\.)?instagram\.com\//.test(url)) {
-                errors[`socialLink${link.platform}`] = 'Please enter a valid Instagram URL (e.g., https://instagram.com/yourhandle)';
-              }
-            } else if (!/^https?:\/\//.test(url)) {
+            if (!/^https?:\/\//i.test(url)) {
               errors[`socialLink${link.platform}`] = 'URL must start with http:// or https://';
             }
           }
         });
       }
-      
-      // Custom social links validation (match vcard-fe: must contain 'http' if filled)
+      // Custom social links validation (simple: must contain http or https if filled)
       if (customSocialLinks && Array.isArray(customSocialLinks)) {
         customSocialLinks.forEach((link: any, idx: number) => {
           // Validate platform name
@@ -587,7 +573,7 @@ const FFUserDetail: React.FC = () => {
           }
           // Validate URL if platform is provided and url is filled
           if (link.platform && link.platform.trim() && link.url && link.url.trim()) {
-            if (!link.url.includes('http')) {
+            if (!/^https?:\/\//i.test(link.url)) {
               errors[`customSocialLinkUrl${idx}`] = 'URL must start with http:// or https://';
             }
           }
@@ -1052,15 +1038,13 @@ const FFUserDetail: React.FC = () => {
                             onChange={e => handleAdditionalEmailChange(index, e.target.value)}
                             placeholder="Enter additional email"
                           />
-                          {additionalEmails.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => removeAdditionalEmail(index)}
-                              className="px-3 py-2 text-red-600 hover:text-red-800 transition-colors self-start mt-2"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeAdditionalEmail(index)}
+                            className="px-3 py-2 text-red-600 hover:text-red-800 transition-colors self-start mt-2"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
                         </div>
                       ))}
                       <button
@@ -1178,16 +1162,14 @@ const FFUserDetail: React.FC = () => {
                               </p>
                             )}
                           </div>
-                          {additionalPhones.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => removeAdditionalPhone(index)}
-                              className="px-3 py-2 text-red-600 hover:text-red-800 transition-colors self-start mt-2"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          )}
-              </div>
+                          <button
+                            type="button"
+                            onClick={() => removeAdditionalPhone(index)}
+                            className="px-3 py-2 text-red-600 hover:text-red-800 transition-colors self-start mt-2"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
                       ))}
                       <button
                         type="button"

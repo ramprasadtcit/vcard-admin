@@ -163,11 +163,11 @@ const FFUserDetail: React.FC = () => {
       setAuthError('');
       
       try {
-        const userRes = await apiService.get(`/profile/admin/${userId}`);
-        setUserProfile(userRes.data);
+          const userRes = await apiService.get(`/profile/admin/${userId}`);
+          setUserProfile(userRes.data);
       } catch (error: any) {
         const errorMsg = error?.response?.data?.error?.message || error?.response?.data?.message || 'Failed to load user profile';
-        setAuthError(errorMsg);
+          setAuthError(errorMsg);
         toast.error(errorMsg);
       } finally {
         setIsLoading(false);
@@ -477,8 +477,8 @@ const FFUserDetail: React.FC = () => {
             user: response.data.user
           }
         }));
-        setEditMode(false);
-        setEditedProfile(null);
+      setEditMode(false);
+      setEditedProfile(null);
         setSelectedProfilePicture(null);
         setProfilePicturePreview(null);
         // Re-initialize additionalPhones and additionalEmails from updated data
@@ -640,14 +640,14 @@ const FFUserDetail: React.FC = () => {
                         <User className="w-4 h-4 mr-2" />
                         {profilePicturePreview ? 'Change Picture' : 'Update Picture'}
                       </label>
-                      <input
+                  <input
                         id="profile-picture-input"
                         type="file"
                         accept="image/*"
                         onChange={handleProfilePictureChange}
                         className="hidden"
-                      />
-                    </div>
+                  />
+                </div>
                     
                     {profilePicturePreview && (
                       <div className="flex items-center justify-center space-x-2">
@@ -673,7 +673,7 @@ const FFUserDetail: React.FC = () => {
             {/* QR Code Section */}
             {profile?.qrCodeUrl && (
               <div className="bg-white rounded-lg shadow p-6 flex flex-col items-center justify-center">
-                <div className="font-semibold mb-4 flex items-center">
+              <div className="font-semibold mb-4 flex items-center">
                   <svg className="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <rect x="3" y="3" width="7" height="7" rx="1.5" strokeWidth="2" />
                     <rect x="14" y="3" width="7" height="7" rx="1.5" strokeWidth="2" />
@@ -681,7 +681,7 @@ const FFUserDetail: React.FC = () => {
                     <rect x="3" y="14" width="7" height="7" rx="1.5" strokeWidth="2" />
                   </svg>
                   Profile QR Code
-                </div>
+              </div>
                 <img
                   src={profile.qrCodeUrl}
                   alt="Profile QR Code"
@@ -690,7 +690,7 @@ const FFUserDetail: React.FC = () => {
                 <div className="mt-2 text-xs text-gray-500 break-all text-center">
                   {`https://twintik.com/${profile.username}`}
                 </div>
-              </div>
+                </div>
             )}
           </div>
 
@@ -742,12 +742,12 @@ const FFUserDetail: React.FC = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Profile URL</label>
                     <div className="flex items-center space-x-2">
-                      <input
-                        type="text"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
                         value={profile?.username ? `https://twintik.com/${profile.username}` : '-'}
-                        disabled
-                      />
+                      disabled
+                    />
                       {profile?.username && (
                         <button type="button" onClick={handleCopyProfileUrl} className="p-2 hover:bg-gray-200 rounded">
                           <Copy className="w-4 h-4 text-gray-600" />
@@ -828,32 +828,32 @@ const FFUserDetail: React.FC = () => {
                     </div>
                   ) : (
                     (() => {
-                      const emails = profile?.additionalEmails ? profile.additionalEmails.split(',').map((e: string) => e.trim()).filter((e: string) => e) : [];
-                      if (emails.length === 0) {
-                        return (
-                          <input
-                            type="text"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            value={editMode ? '' : '-'}
-                            disabled={!editMode}
-                            onChange={e => handleChange('additionalEmails', e.target.value)}
-                          />
-                        );
-                      }
-                      return emails.map((email: string, index: number) => (
+                    const emails = profile?.additionalEmails ? profile.additionalEmails.split(',').map((e: string) => e.trim()).filter((e: string) => e) : [];
+                    if (emails.length === 0) {
+                      return (
                         <input
-                          key={index}
-                          type="email"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-2"
-                          value={editMode ? email : email}
+                          type="text"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          value={editMode ? '' : '-'}
                           disabled={!editMode}
-                          onChange={e => {
-                            const newEmails = [...emails];
-                            newEmails[index] = e.target.value;
-                            handleChange('additionalEmails', newEmails.join(', '));
-                          }}
+                          onChange={e => handleChange('additionalEmails', e.target.value)}
                         />
-                      ));
+                      );
+                    }
+                    return emails.map((email: string, index: number) => (
+                      <input
+                        key={index}
+                        type="email"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-2"
+                        value={editMode ? email : email}
+                        disabled={!editMode}
+                        onChange={e => {
+                          const newEmails = [...emails];
+                          newEmails[index] = e.target.value;
+                          handleChange('additionalEmails', newEmails.join(', '));
+                        }}
+                      />
+                    ));
                     })()
                   )}
                 </div>
@@ -902,8 +902,8 @@ const FFUserDetail: React.FC = () => {
                               }}
                               placeholder="Enter phone number"
                               className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300"
-                            />
-                          </div>
+                  />
+                </div>
                           {additionalPhones.length > 1 && (
                             <button
                               type="button"
@@ -913,7 +913,7 @@ const FFUserDetail: React.FC = () => {
                               <X className="w-4 h-4" />
                             </button>
                           )}
-                        </div>
+              </div>
                       ))}
                       <button
                         type="button"
@@ -1135,11 +1135,11 @@ const FFUserDetail: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="font-semibold mb-1">NFC Configuration</div>
-                  <div className={`font-medium mb-1 ${invitationData?.nfcStatus === 'configured' ? 'text-green-700' : 'text-yellow-700'}`}> 
+                  <div className={`font-medium mb-1 ${invitationData?.nfcStatus === 'configured' ? 'text-green-700' : 'text-yellow-700'}`}>
                     {invitationData?.nfcStatus === 'configured' ? 'NFC Configuration Completed' : 'NFC Configuration Pending'}
                   </div>
                   <div className="text-xs text-gray-500">
-                    {invitationData?.nfcStatus === 'configured'
+                    {invitationData?.nfcStatus === 'configured' 
                       ? `NFC card configured on ${invitationData?.nfcConfiguredAt ? formatDate(invitationData.nfcConfiguredAt) : 'N/A'}`
                       : "User's profile is complete. NFC card needs to be configured manually."
                     }
@@ -1207,4 +1207,4 @@ const FFUserDetail: React.FC = () => {
   }
 };
 
-export default FFUserDetail;
+export default FFUserDetail; 

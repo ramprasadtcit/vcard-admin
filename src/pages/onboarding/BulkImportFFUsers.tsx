@@ -171,8 +171,8 @@ const BulkImportFFUsers: React.FC = () => {
 
           if (nameIndex === -1 || emailIndex === -1) {
             reject(new Error('CSV must have "Full Name" and "Email" columns'));
-            return;
-          }
+      return;
+    }
 
           // Parse data rows
           const users: CSVUser[] = [];
@@ -320,7 +320,7 @@ const BulkImportFFUsers: React.FC = () => {
           }
 
           resolve(users);
-        } catch (error) {
+    } catch (error) {
           reject(new Error('Failed to parse CSV file'));
         }
       };
@@ -375,8 +375,9 @@ const BulkImportFFUsers: React.FC = () => {
     try {
       console.log('🔴 FRONTEND: Calling /admin/bulk-invitations/send - Creates records in INVITATION TABLE');
       console.log('🔴 FRONTEND: Number of invitations being sent:', users.length);
-      const response = await apiService.post<SendResult>('/admin/bulk-invitations/send', { users });
-      return response;
+      const response = await apiService.post<{ success: boolean; data: SendResult; message: string }>('/admin/bulk-invitations/send', { users });
+      console.log('🔴 FRONTEND: API Response:', response);
+      return response.data; // Extract the data from the response
     } catch (error: any) {
       console.error('Send invitations error:', error);
       if (error.response?.status === 401) {
@@ -393,8 +394,9 @@ const BulkImportFFUsers: React.FC = () => {
     try {
       console.log('🟢 FRONTEND: Calling /admin/bulk-users/create - Should create users in USER TABLE');
       console.log('🟢 FRONTEND: Number of users being created:', users.length);
-      const response = await apiService.post<SendResult>('/admin/bulk-users/create', { users });
-      return response;
+      const response = await apiService.post<{ success: boolean; data: SendResult; message: string }>('/admin/bulk-users/create', { users });
+      console.log('🟢 FRONTEND: API Response:', response);
+      return response.data; // Extract the data from the response
     } catch (error: any) {
       console.error('Create users error:', error);
       if (error.response?.status === 401) {
@@ -728,62 +730,62 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
                     💡 If you have more than {BULK_INVITATION_LIMITS.MAX_USERS_PER_BATCH} users, split them into multiple CSV files
                   </p>
                 </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          {/* File Upload */}
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Upload CSV File
-              </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary-400 transition-colors">
-                <input
-                  type="file"
-                  accept=".csv"
+              {/* File Upload */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Upload CSV File
+                  </label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary-400 transition-colors">
+                    <input
+                      type="file"
+                      accept=".csv"
                   onChange={activeTab === 'invite' ? handleInviteFileChange : handleCreateFileChange}
-                  className="hidden"
+                      className="hidden"
                   id="csv-file-upload"
-                />
+                    />
                 <label htmlFor="csv-file-upload" className="cursor-pointer">
-                  <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                  <div className="mt-4">
-                    <p className="text-sm text-gray-600">
+                      <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                      <div className="mt-4">
+                        <p className="text-sm text-gray-600">
                       {activeTab === 'invite' 
                         ? (inviteCsvFile ? inviteCsvFile.name : 'Click to upload or drag and drop')
                         : (createCsvFile ? createCsvFile.name : 'Click to upload or drag and drop')
                       }
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">CSV files only</p>
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">CSV files only</p>
+                      </div>
+                    </label>
                   </div>
-                </label>
-              </div>
-            </div>
+                </div>
 
-            {/* Download Sample */}
-            <div className="flex items-center space-x-2">
-              <button
+                {/* Download Sample */}
+                <div className="flex items-center space-x-2">
+                  <button
                 onClick={downloadSampleCSV}
-                className="btn-secondary flex items-center text-sm"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Download Sample CSV
-              </button>
-            </div>
+                    className="btn-secondary flex items-center text-sm"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download Sample CSV
+                  </button>
+                </div>
 
-            {/* Submit Button */}
-            <button
+                {/* Submit Button */}
+                <button
               onClick={activeTab === 'invite' ? handleSendEmailInvitations : handleCreateFullUsers}
               disabled={!(activeTab === 'invite' ? inviteCsvFile : createCsvFile) || isProcessing}
-              className="btn-primary flex items-center w-full sm:w-auto"
-            >
+                  className="btn-primary flex items-center w-full sm:w-auto"
+                >
               {isProcessing ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                   Processing...
-                </>
-              ) : (
+                    </>
+                  ) : (
                 <>
                   {activeTab === 'invite' ? (
                     <>
@@ -796,9 +798,9 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
                       Create User Profiles
                     </>
                   )}
-                </>
-              )}
-            </button>
+                    </>
+                  )}
+                </button>
 
             {/* Progress Bar */}
             {isProcessing && progress > 0 && (
@@ -809,7 +811,7 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
                 ></div>
               </div>
             )}
-          </div>
+              </div>
 
           {/* Send Results */}
           {sendResult && (
@@ -817,26 +819,26 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
               <h3 className="text-lg font-medium text-gray-900 mb-4">
                 {activeTab === 'invite' ? 'Invitation Results' : 'User Creation Results'}
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                <div className="flex items-center space-x-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                    <div className="flex items-center space-x-2">
                   <Users className="w-5 h-5 text-blue-600" />
-                  <span className="text-sm text-gray-600">
+                      <span className="text-sm text-gray-600">
                     Total: <span className="font-medium text-blue-600">{sendResult.totalUsers}</span>
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
                   <CheckCircle className="w-5 h-5 text-green-600" />
-                  <span className="text-sm text-gray-600">
+                      <span className="text-sm text-gray-600">
                     Success: <span className="font-medium text-green-600">{sendResult.successCount}</span>
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
                   <XCircle className="w-5 h-5 text-red-600" />
-                  <span className="text-sm text-gray-600">
+                      <span className="text-sm text-gray-600">
                     Failed: <span className="font-medium text-red-600">{sendResult.errorCount}</span>
-                  </span>
-                </div>
-              </div>
+                      </span>
+                    </div>
+                  </div>
               
               {/* Detailed Results */}
               {sendResult.results && sendResult.results.length > 0 && (
@@ -880,7 +882,7 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
                         ))}
                       </tbody>
                     </table>
-                  </div>
+                    </div>
                 </div>
               )}
             </div>
@@ -910,8 +912,8 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
                   <div>Total Users: <span className="font-medium">{validationResult.totalUsers}</span></div>
                   <div>New Users: <span className="font-medium text-green-600">{validationResult.newUsers}</span></div>
                   <div>Existing Users: <span className="font-medium text-yellow-600">{validationResult.existingUsers}</span></div>
+                  </div>
                 </div>
-              </div>
             )}
 
             {activeTab === 'create' && fullUserValidationResult && (
@@ -921,8 +923,8 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
                   <div>Valid Users: <span className="font-medium text-green-600">{fullUserValidationResult.validUsers}</span></div>
                   <div>Missing Fields: <span className="font-medium text-orange-600">{fullUserValidationResult.missingFieldsUsers || 0}</span></div>
                   <div>Duplicate Users: <span className="font-medium text-red-600">{fullUserValidationResult.duplicateUsers || 0}</span></div>
-                </div>
-                
+              </div>
+
                 {/* Show detailed validation results */}
                 {fullUserValidationResult.invalidUsers > 0 && (
                   <div className="border-t border-gray-200 pt-3">
@@ -947,8 +949,8 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
                         {fullUserValidationResult.results.some(r => r.duplicateFields?.phone) && (
                           <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded">📱 Phone conflicts</span>
                         )}
-                      </div>
-                    </div>
+                  </div>
+                </div>
                     <div className="max-h-80 overflow-y-auto">
                       <table className="min-w-full text-sm border border-gray-200">
                         <thead className="bg-gray-100">
@@ -1073,16 +1075,16 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
               {(activeTab === 'invite' && validationResult?.newUsers === 0) || 
                (activeTab === 'create' && fullUserValidationResult?.validUsers === 0) ? (
                 // Show only Close button when no action needed
-                <button
+                  <button
                   onClick={() => setShowConfirmation(false)}
                   className="btn-secondary flex-1"
-                >
+                  >
                   Close
-                </button>
+                  </button>
               ) : (
                 // Show Cancel and Confirm buttons for normal cases
                 <>
-                  <button
+                <button
                     onClick={() => setShowConfirmation(false)}
                     className="btn-secondary flex-1"
                     disabled={isProcessing}
@@ -1095,8 +1097,8 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
                     disabled={isProcessing}
                   >
                     {isProcessing ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                         {activeTab === 'invite' ? 'Sending...' : 'Creating...'}
                       </>
                     ) : (
@@ -1105,21 +1107,21 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
                           <>
                             <Send className="w-4 h-4 mr-2" />
                             Confirm & Send
-                          </>
-                        ) : (
-                          <>
-                            <UserPlus className="w-4 h-4 mr-2" />
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-4 h-4 mr-2" />
                             Confirm & Create
                           </>
                         )}
-                      </>
-                    )}
-                  </button>
+                    </>
+                  )}
+                </button>
                 </>
               )}
-            </div>
-          </div>
-        </div>
+              </div>
+                    </div>
+                    </div>
       )}
 
       {/* Success Popup Modal */}
@@ -1131,7 +1133,7 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
               <h3 className="text-lg font-medium text-gray-900">
                 {activeTab === 'invite' ? 'Invitations Sent Successfully!' : 'Users Created Successfully!'}
               </h3>
-            </div>
+                    </div>
             
             <p className="text-gray-600 mb-6">
               {activeTab === 'invite' 
@@ -1147,10 +1149,10 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
               >
                 Go to F&F Onboarding
               </button>
-            </div>
-          </div>
-        </div>
-      )}
+                  </div>
+                    </div>
+                </div>
+              )}
     </div>
   );
 };

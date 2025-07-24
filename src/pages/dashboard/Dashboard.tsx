@@ -253,7 +253,7 @@ const Dashboard: React.FC = () => {
     if (!stats) return [];
 
     switch (currentUser?.role) {
-      case 'super_admin':
+      case 'superadmin':
       case 'platform_admin':
         return [
           {
@@ -329,7 +329,7 @@ const Dashboard: React.FC = () => {
 
   const getQuickActions = () => {
     switch (currentUser?.role) {
-      case 'super_admin':
+      case 'superadmin':
         return [
           { label: 'Add Platform Admin', icon: Plus, path: '/platform-admins' },
           { label: 'Review NFC Requests', icon: Smartphone, path: '/nfc-requests' },

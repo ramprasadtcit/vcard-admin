@@ -151,7 +151,7 @@ const validationSchema = Yup.object().shape({
     })
     .optional(),
   profileUrl: Yup.string()
-    .matches(/^twintik\.com\/[a-z0-9]+$/, 'Profile URL must be lowercase letters and numbers only')
+    .matches(/^[a-z0-9]+$/, 'Profile URL must be lowercase letters and numbers only')
     .required('Profile URL is required'),
   email: Yup.string()
     .email('Invalid email address')
@@ -411,7 +411,7 @@ const FFUserProfileSetup: React.FC = () => {
   const handlePickSuggestion = async (suggestion: string) => {
     setFormData(prev => ({
       ...prev,
-      profileUrl: `https://twintik.com/${suggestion}`
+      profileUrl: suggestion // Only set the username, not the full URL
     }));
     setSelectedSuggestion(suggestion);
     setUsernameAvailable(null); // Reset availability check
@@ -435,9 +435,18 @@ const FFUserProfileSetup: React.FC = () => {
   };
 
   const handleInputChange = (field: string, value: string) => {
+    let newValue = value;
+    if (field === 'profileUrl') {
+      // Remove any leading protocol and domain
+      newValue = newValue
+        .replace(/^https?:\/\/twintik\.com\//, '')
+        .replace(/^https?:\/\//, '');
+      // Remove any slashes
+      newValue = newValue.replace(/\//g, '');
+    }
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [field]: newValue
     }));
   };
 

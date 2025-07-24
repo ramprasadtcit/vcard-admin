@@ -134,6 +134,7 @@ const FFUserDetail: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  
   const [invitation, setInvitation] = useState<Invitation | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -153,29 +154,26 @@ const FFUserDetail: React.FC = () => {
   }, [location.state]);
 
   console.info(editMode,'edit')
+
   useEffect(() => {
     const fetchData = async () => {
       if (!userId) return;
+      
       setIsLoading(true);
+      setAuthError('');
+      
       try {
-        if (userId) {
-          const userRes = await apiService.get(`/profile/admin/${userId}`);
-          setUserProfile(userRes.data);
-          setAuthError('');
-        }
+        const userRes = await apiService.get(`/profile/admin/${userId}`);
+        setUserProfile(userRes.data);
       } catch (error: any) {
-        const errorMsg = error?.response?.data?.error?.message || error?.response?.data?.message || 'Failed to fetch details';
-        if (errorMsg === 'Invalid token') {
-          toast.error('Your session has expired or you are not authorized. Please log in again as a super admin.');
-          setAuthError('Your session has expired or you are not authorized. Please log in again as a super admin.');
-        } else {
-          toast.error(errorMsg);
-          setAuthError(errorMsg);
-        }
+        const errorMsg = error?.response?.data?.error?.message || error?.response?.data?.message || 'Failed to load user profile';
+        setAuthError(errorMsg);
+        toast.error(errorMsg);
       } finally {
         setIsLoading(false);
       }
     };
+
     fetchData();
   }, [userId]);
 

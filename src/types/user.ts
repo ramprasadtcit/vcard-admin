@@ -1,5 +1,5 @@
 // User Types
-export type UserRole = 'super_admin' | 'platform_admin' | 'org_admin' | 'org_sub_admin' | 'sub_admin' | 'editor' | 'viewer';
+export type UserRole = 'superadmin' | 'platform_admin' | 'org_admin' | 'org_sub_admin' | 'sub_admin' | 'editor' | 'viewer';
 
 export interface PlatformAdmin {
   id: string;

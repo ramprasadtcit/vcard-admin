@@ -325,7 +325,7 @@ const NFCRequests: React.FC = () => {
   };
 
   // Only Super Admin and Platform Admin can access this page
-  if (currentUser?.role !== 'super_admin' && currentUser?.role !== 'platform_admin') {
+  if (currentUser?.role !== 'superadmin' && currentUser?.role !== 'platform_admin') {
     return (
       <div className="text-center py-12">
         <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">

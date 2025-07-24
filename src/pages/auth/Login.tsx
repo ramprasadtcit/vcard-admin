@@ -117,15 +117,7 @@ const Login: React.FC = () => {
           </div>
 
           <div className="text-center">
-            <p className="text-xs text-gray-500">
-              Demo credentials: Use any email from mock data with password "password"
-            </p>
-            <div className="mt-2 text-xs text-gray-400 space-y-1">
-              <p>• john@twintik.com (Super Admin)</p>
-              <p>• alex.johnson@twintik.com (Platform Admin)</p>
-              <p>• sarah@techcorp.com (Org Admin)</p>
-              <p>• mike@techcorp.com (Sub Admin)</p>
-            </div>
+            {/* Demo credentials removed */}
           </div>
         </form>
       </div>

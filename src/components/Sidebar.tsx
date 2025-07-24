@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { NAVIGATION_ITEMS } from '../constants/routes';
+import twintikLogo from '../assets/twintik-logo.svg';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -173,21 +174,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
       `}>
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                <Shield className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-bold text-gray-900">TwinTik</span>
-            </div>
-            <button
-              onClick={onToggle}
-              className="lg:hidden p-1 rounded-md text-gray-400 hover:text-gray-600"
-            >
-              <X className="w-5 h-5" />
-            </button>
+          <div className="flex flex-col items-center justify-center p-6 border-b border-gray-200">
+            <img src={twintikLogo} alt="TwinTik Logo" className="w-20 h-4 mb-2" />
           </div>
-
+          <button
+            onClick={onToggle}
+            className="lg:hidden p-1 rounded-md text-gray-400 hover:text-gray-600"
+          >
+            <X className="w-5 h-5" />
+          </button>
           {/* Navigation */}
           <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
             {navigationItems.map(item => renderNavigationItem(item))}

@@ -52,14 +52,12 @@ api.interceptors.response.use(
 export const apiService = {
   // Auth
   login: async (email: string, password: string) => {
-          // Mock login - in real app, this would be a POST request
-      const foundUser = mockUsers.find(u => u.email === email);
-    
-    if (foundUser && password === 'password') {
-      return { user: foundUser, token: 'mock-token' };
+    // Real backend call
+    const response = await api.post('/admin/login', { email, password });
+    if (response.data && response.data.success && response.data.token) {
+      return { user: response.data.user, token: response.data.token };
     }
-    
-    throw new Error('Invalid credentials');
+    throw new Error(response.data?.message || 'Invalid credentials');
   },
 
   // Users

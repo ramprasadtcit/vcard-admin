@@ -115,7 +115,7 @@ const FFUserOnboarding: React.FC = () => {
   }, [invitations]);
 
   // Only Super Admin can access this page
-  if (currentUser?.role !== 'super_admin') {
+  if (currentUser?.role !== 'superadmin') {
     return (
       <div className="text-center py-12">
         <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">

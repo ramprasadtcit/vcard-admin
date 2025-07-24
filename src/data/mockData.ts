@@ -37,7 +37,7 @@ export const mockUsers: User[] = [
     id: '1',
     name: 'John Super Admin',
     email: 'john@twintik.com',
-    role: 'super_admin',
+    role: 'superadmin',
     avatar: 'https://i.pravatar.cc/150?img=1',
     status: 'active',
     createdAt: '2024-01-15T10:00:00Z',

@@ -76,7 +76,7 @@ const RolesPermissions: React.FC = () => {
   // Mock roles data
   const [roles, setRoles] = useState<Role[]>([
     {
-      id: 'super_admin',
+      id: 'superadmin',
       name: 'Super Admin',
       description: 'Full access to all features and settings',
       permissions: permissions.map(p => p.id),

@@ -9,284 +9,301 @@ import {
   AlertCircle,
   Send,
   UserPlus,
-  ArrowLeft
+  ArrowLeft,
+  FileText,
+  Users,
+  Clock
 } from 'lucide-react';
-import { useNotifications } from '../../contexts/NotificationContext';
 import { useFFUsers } from '../../contexts';
-import { FFUser } from '../../types/user';
+import { apiService } from '../../services/api';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-interface UploadResult {
-  success: number;
-  failure: number;
-  duplicates: number;
-  errors: string[];
+// Bulk invitation limits
+const BULK_INVITATION_LIMITS = {
+  MAX_USERS_PER_BATCH: 50,        // Max users per CSV upload
+  MAX_DAILY_INVITATIONS: 50,      // Max invitations per day per admin
+};
+
+interface CSVUser {
+  fullName: string;
+  email: string;
 }
 
-interface EmailInviteResult {
-  success: number;
-  failure: number;
-  duplicates: number;
-  errors: string[];
+interface ValidationResult {
+  totalUsers: number;
+  existingUsers: number;
+  newUsers: number;
+  results: Array<{
+    fullName: string;
+    email: string;
+    isExisting: boolean;
+    existingUser: boolean;
+    existingInvitation: boolean;
+  }>;
+}
+
+interface SendResult {
+  totalUsers: number;
+  successCount: number;
+  errorCount: number;
+  message: string;
+  results: Array<{
+    fullName: string;
+    email: string;
+    success: boolean;
+    invitationId?: string;
+    error?: string;
+  }>;
 }
 
 const BulkImportFFUsers: React.FC = () => {
   const navigate = useNavigate();
-  const { addNotification } = useNotifications();
   const { addFFUsers } = useFFUsers();
-  const [activeTab, setActiveTab] = useState<'email' | 'full'>('email');
-  const [emailFile, setEmailFile] = useState<File | null>(null);
-  const [fullFile, setFullFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [emailResults, setEmailResults] = useState<EmailInviteResult | null>(null);
-  const [fullResults, setFullResults] = useState<UploadResult | null>(null);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [sendResult, setSendResult] = useState<SendResult | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [successCount, setSuccessCount] = useState(0);
 
-  const handleEmailFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && file.type === 'text/csv') {
-      setEmailFile(file);
-      setEmailResults(null);
+      setCsvFile(file);
+      setValidationResult(null);
+      setSendResult(null);
+      setShowConfirmation(false);
     } else {
-      addNotification({
-        type: 'error',
-        title: 'Invalid File',
-        message: 'Please select a valid CSV file.',
-        isRead: false,
-        userId: 'current',
-      });
+      toast.error('Please select a valid CSV file.');
     }
   };
 
-  const handleFullFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && file.type === 'text/csv') {
-      setFullFile(file);
-      setFullResults(null);
-    } else {
-      addNotification({
-        type: 'error',
-        title: 'Invalid File',
-        message: 'Please select a valid CSV file.',
-        isRead: false,
-        userId: 'current',
-      });
+  const parseCSV = (file: File): Promise<CSVUser[]> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const csv = e.target?.result as string;
+          const lines = csv.split('\n');
+          
+          // Remove empty lines and trim whitespace
+          const nonEmptyLines = lines.filter(line => line.trim());
+          
+          if (nonEmptyLines.length < 2) {
+            reject(new Error('CSV file must have at least a header row and one data row'));
+            return;
+          }
+
+          // Parse header
+          const header = nonEmptyLines[0].split(',').map(h => h.trim().toLowerCase());
+          const nameIndex = header.findIndex(h => h === 'full name' || h === 'name');
+          const emailIndex = header.findIndex(h => h === 'email');
+
+          if (nameIndex === -1 || emailIndex === -1) {
+            reject(new Error('CSV must have "Full Name" and "Email" columns'));
+            return;
+          }
+
+          // Parse data rows
+          const users: CSVUser[] = [];
+          for (let i = 1; i < nonEmptyLines.length; i++) {
+            const line = nonEmptyLines[i];
+            const values = line.split(',').map(v => v.trim());
+            
+            if (values.length >= Math.max(nameIndex, emailIndex) + 1) {
+              const fullName = values[nameIndex];
+              const email = values[emailIndex];
+              
+              if (fullName && email) {
+                users.push({ fullName, email });
+              }
+            }
+          }
+
+          if (users.length === 0) {
+            reject(new Error('No valid user data found in CSV'));
+            return;
+          }
+
+          // Check batch size limit
+          if (users.length > BULK_INVITATION_LIMITS.MAX_USERS_PER_BATCH) {
+            reject(new Error(`CSV contains ${users.length} users, which exceeds the maximum limit of ${BULK_INVITATION_LIMITS.MAX_USERS_PER_BATCH} users per batch. Please split your CSV into smaller files with a maximum of ${BULK_INVITATION_LIMITS.MAX_USERS_PER_BATCH} users each.`));
+            return;
+          }
+
+          resolve(users);
+        } catch (error) {
+          reject(new Error('Failed to parse CSV file'));
+        }
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsText(file);
+    });
+  };
+
+  const validateUsers = async (users: CSVUser[]): Promise<ValidationResult> => {
+    try {
+      const response = await apiService.post<{ success: boolean; data: ValidationResult }>('/admin/bulk-invitations/validate', { users });
+      return response.data;
+    } catch (error: any) {
+      console.error('Validation error:', error);
+      if (error.response?.data?.error === 'INVALID_CSV_FORMAT') {
+        throw new Error('Invalid CSV format. Each row must have Full Name and Email columns.');
+      }
+      if (error.response?.status === 401) {
+        throw new Error('Authentication failed. Please check your login status.');
+      }
+      if (error.response?.status === 500) {
+        throw new Error('Server error. Please try again later.');
+      }
+      throw new Error(error.response?.data?.message || 'Failed to validate users');
     }
   };
 
-  const downloadSampleCSV = (type: 'email' | 'full') => {
-    let csvContent = '';
-    let filename = '';
+  const sendInvitations = async (users: CSVUser[]): Promise<SendResult> => {
+    try {
+      const response = await apiService.post<SendResult>('/admin/bulk-invitations/send', { users });
+      return response;
+    } catch (error: any) {
+      console.error('Send invitations error:', error);
+      if (error.response?.status === 401) {
+        throw new Error('Authentication failed. Please check your login status.');
+      }
+      if (error.response?.status === 500) {
+        throw new Error('Server error. Please try again later.');
+      }
+      throw new Error(error.response?.data?.message || 'Failed to send invitations');
+    }
+  };
 
-    if (type === 'email') {
-      csvContent = 'Full Name,Email\nJohn Doe,john.doe@example.com\nJane Smith,jane.smith@example.com';
-      filename = 'sample_email_invite.csv';
-    } else {
-      csvContent = `Full Name,Email,Phone,Additional Phones,Additional Emails,Job Title,Company,Street,City,State,Postal,Country,LinkedIn,Instagram,X,Custom Links
-John Doe,john.doe@example.com,+1234567890,"+1987654321,+1555123456","john2@example.com,john.work@example.com",Software Engineer,TechCorp,123 Main St,New York,NY,10001,USA,https://linkedin.com/in/johndoe,https://instagram.com/johndoe,https://x.com/johndoe,"Portfolio:https://johndoe.com | Blog:https://blog.johndoe.com"
-Jane Smith,jane.smith@example.com,+1234567891,"+1987654322,+1555987654","jane2@example.com,jane.work@example.com",Product Manager,InnovateCorp,456 Oak Ave,San Francisco,CA,94102,USA,https://linkedin.com/in/janesmith,https://instagram.com/janesmith,https://x.com/janesmith,"Website:https://janesmith.com"`;
-      filename = 'sample_full_user_details.csv';
+  const handleSendEmailInvitations = async () => {
+    if (!csvFile) {
+      toast.warning('Please upload a CSV file before sending email invitations.');
+      return;
     }
 
+    setIsProcessing(true);
+    setProgress(10);
+
+    try {
+      // Parse CSV
+      const users = await parseCSV(csvFile);
+      setProgress(30);
+
+      // Validate users
+      const validation = await validateUsers(users);
+      setValidationResult(validation);
+      setProgress(60);
+
+      // Show confirmation popup
+      setShowConfirmation(true);
+      setProgress(100);
+
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setIsProcessing(false);
+      setProgress(0);
+    }
+  };
+
+  const handleConfirmSend = async () => {
+    if (!csvFile || !validationResult) return;
+
+    setIsProcessing(true);
+    setProgress(0);
+
+    try {
+      // Get only new users for sending invitations
+      const newUsers = validationResult.results
+        .filter(result => !result.isExisting)
+        .map(result => ({ fullName: result.fullName, email: result.email }));
+
+      if (newUsers.length === 0) {
+        toast.warning('All users are already registered. No invitations will be sent.');
+        setShowConfirmation(false);
+        return;
+      }
+
+      // Send invitations
+      const result = await sendInvitations(newUsers);
+      setSendResult(result);
+      setShowConfirmation(false);
+
+      // Show success popup
+      setSuccessCount(result.successCount);
+      setShowSuccessPopup(true);
+
+      // Show success notification
+      toast.success(result.message);
+
+      // Removed daily stats fetching
+
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setIsProcessing(false);
+      setProgress(0);
+    }
+  };
+
+  const downloadSampleCSV = () => {
+    const csvContent = `Full Name,Email
+John Doe,john.doe@example.com
+Jane Smith,jane.smith@example.com
+Bob Johnson,bob.johnson@example.com
+Alice Brown,alice.brown@example.com
+Charlie Wilson,charlie.wilson@example.com
+# Note: Maximum 50 users per CSV file`;
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = filename;
+    a.download = 'sample_bulk_invitations.csv';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
   };
 
-  const handleEmailSubmit = async () => {
-    if (!emailFile) {
-      addNotification({
-        type: 'error',
-        title: 'No File Selected',
-        message: 'Please select a CSV file to upload.',
-        isRead: false,
-        userId: 'current',
-      });
-      return;
-    }
+  const getConfirmationMessage = () => {
+    if (!validationResult) return '';
 
-    setIsUploading(true);
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Mock CSV parsing and user creation
-      const mockImportedUsers: FFUser[] = [
-        {
-          id: `ff-${Date.now()}-1`,
-          fullName: 'John Doe',
-          email: 'john.doe@example.com',
-          status: 'pending',
-          onboardingToken: `ff-token-${Math.random().toString(36).substr(2, 9)}`,
-          onboardingLink: `https://admin.twintik.com/onboard/ff-token-${Math.random().toString(36).substr(2, 9)}`,
-          invitedBy: 'admin@twintik.com',
-          invitedAt: new Date().toISOString(),
-          tokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          id: `ff-${Date.now()}-2`,
-          fullName: 'Jane Smith',
-          email: 'jane.smith@example.com',
-          status: 'pending',
-          onboardingToken: `ff-token-${Math.random().toString(36).substr(2, 9)}`,
-          onboardingLink: `https://admin.twintik.com/onboard/ff-token-${Math.random().toString(36).substr(2, 9)}`,
-          invitedBy: 'admin@twintik.com',
-          invitedAt: new Date().toISOString(),
-          tokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        }
-      ];
-      
-      // Add the imported users to the context
-      addFFUsers(mockImportedUsers);
-      
-      // Mock results
-      const results: EmailInviteResult = {
-        success: mockImportedUsers.length,
-        failure: 0,
-        duplicates: 0,
-        errors: []
-      };
-      
-      setEmailResults(results);
-      addNotification({
-        type: 'success',
-        title: 'Email Invitations Sent',
-        message: `Successfully sent ${results.success} invitations. ${results.failure} failed, ${results.duplicates} duplicates found.`,
-        isRead: false,
-        userId: 'current',
-      });
-    } catch (error) {
-      addNotification({
-        type: 'error',
-        title: 'Upload Failed',
-        message: 'Failed to process the CSV file. Please try again.',
-        isRead: false,
-        userId: 'current',
-      });
-    } finally {
-      setIsUploading(false);
+    const { totalUsers, existingUsers, newUsers } = validationResult;
+
+    if (newUsers === 0) {
+      return 'All users are already registered. No invitations will be sent.';
+    } else if (existingUsers === 0) {
+      return `All users are new. Confirm to send invitations to ${newUsers} users?`;
+    } else {
+      return `${existingUsers} user(s) already registered. Confirm to send invitations to ${newUsers} new user(s)?`;
     }
   };
 
-  const handleFullSubmit = async () => {
-    if (!fullFile) {
-      addNotification({
-        type: 'error',
-        title: 'No File Selected',
-        message: 'Please select a CSV file to upload.',
-        isRead: false,
-        userId: 'current',
-      });
-      return;
-    }
-
-    setIsUploading(true);
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      // Mock CSV parsing and user creation with full details
-      const mockImportedUsers: FFUser[] = [
-        {
-          id: `ff-${Date.now()}-1`,
-          fullName: 'John Doe',
-          email: 'john.doe@example.com',
-          status: 'pending',
-          onboardingToken: `ff-token-${Math.random().toString(36).substr(2, 9)}`,
-          onboardingLink: `https://admin.twintik.com/onboard/ff-token-${Math.random().toString(36).substr(2, 9)}`,
-          invitedBy: 'admin@twintik.com',
-          invitedAt: new Date().toISOString(),
-          tokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-          profileData: {
-            jobTitle: 'Software Engineer',
-            company: 'TechCorp',
-            phone: '+1234567890',
-            additionalPhones: ['+1987654321'],
-            additionalEmails: ['john2@example.com'],
-            address: {
-              street: '123 Main St',
-              city: 'New York',
-              state: 'NY',
-              zipCode: '10001',
-              country: 'USA'
-            },
-            socialLinks: {
-              linkedin: 'https://linkedin.com/in/johndoe',
-              instagram: 'https://instagram.com/johndoe',
-              x: 'https://x.com/johndoe'
-            }
-          }
-        },
-        {
-          id: `ff-${Date.now()}-2`,
-          fullName: 'Jane Smith',
-          email: 'jane.smith@example.com',
-          status: 'pending',
-          onboardingToken: `ff-token-${Math.random().toString(36).substr(2, 9)}`,
-          onboardingLink: `https://admin.twintik.com/onboard/ff-token-${Math.random().toString(36).substr(2, 9)}`,
-          invitedBy: 'admin@twintik.com',
-          invitedAt: new Date().toISOString(),
-          tokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-          profileData: {
-            jobTitle: 'Product Manager',
-            company: 'InnovateCorp',
-            phone: '+1234567891',
-            additionalPhones: ['+1987654322'],
-            additionalEmails: ['jane2@example.com'],
-            address: {
-              street: '456 Oak Ave',
-              city: 'San Francisco',
-              state: 'CA',
-              zipCode: '94102',
-              country: 'USA'
-            },
-            socialLinks: {
-              linkedin: 'https://linkedin.com/in/janesmith',
-              instagram: 'https://instagram.com/janesmith',
-              x: 'https://x.com/janesmith'
-            }
-          }
-        }
-      ];
-      
-      // Add the imported users to the context
-      addFFUsers(mockImportedUsers);
-      
-      // Mock results
-      const results: UploadResult = {
-        success: mockImportedUsers.length,
-        failure: 0,
-        duplicates: 0,
-        errors: []
-      };
-      
-      setFullResults(results);
-      addNotification({
-        type: 'success',
-        title: 'Users Imported',
-        message: `Successfully imported ${results.success} users. ${results.failure} failed, ${results.duplicates} duplicates found.`,
-        isRead: false,
-        userId: 'current',
-      });
-    } catch (error) {
-      addNotification({
-        type: 'error',
-        title: 'Import Failed',
-        message: 'Failed to import users. Please check your CSV format and try again.',
-        isRead: false,
-        userId: 'current',
-      });
-    } finally {
-      setIsUploading(false);
-    }
+  const handleSuccessPopupClose = () => {
+    setShowSuccessPopup(false);
+    navigate('/admin/fnf-onboarding');
   };
 
   return (
     <div className="space-y-6">
+      {/* Toast Container */}
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
+      
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center space-x-4">
@@ -304,265 +321,233 @@ Jane Smith,jane.smith@example.com,+1234567891,"+1987654322,+1555987654","jane2@e
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Main Content */}
       <div className="card">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
-            <button
-              onClick={() => setActiveTab('email')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
-                activeTab === 'email'
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <Mail className="w-4 h-4" />
-              <span>Invite via Email</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('full')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
-                activeTab === 'full'
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <UserPlus className="w-4 h-4" />
-              <span>Import Full User Details</span>
-            </button>
-          </nav>
-        </div>
-
         <div className="p-6">
-          {activeTab === 'email' && (
-            <div className="space-y-6">
-              {/* Email Invite Tab */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-start space-x-3">
-                  <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
-                  <div>
-                    <h3 className="text-sm font-medium text-blue-800">Email Invitation Process</h3>
-                    <p className="text-sm text-blue-700 mt-1">
-                      Only Name and Email are required. A unique invitation link will be sent to each email address.
-                    </p>
-                  </div>
-                </div>
+          {/* Info Alert */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start space-x-3">
+              <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-medium text-blue-800">Bulk Invitation Process</h3>
+                <p className="text-sm text-blue-700 mt-1">
+                  Upload a CSV file with Full Name and Email columns. The system will check for existing users and send invitations only to new users.
+                </p>
               </div>
-
-              {/* File Upload */}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Upload CSV File
-                  </label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary-400 transition-colors">
-                    <input
-                      type="file"
-                      accept=".csv"
-                      onChange={handleEmailFileChange}
-                      className="hidden"
-                      id="email-file-upload"
-                    />
-                    <label htmlFor="email-file-upload" className="cursor-pointer">
-                      <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                      <div className="mt-4">
-                        <p className="text-sm text-gray-600">
-                          {emailFile ? emailFile.name : 'Click to upload or drag and drop'}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">CSV files only</p>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Download Sample */}
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => downloadSampleCSV('email')}
-                    className="btn-secondary flex items-center text-sm"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Download Sample CSV
-                  </button>
-                </div>
-
-                {/* Submit Button */}
-                <button
-                  onClick={handleEmailSubmit}
-                  disabled={!emailFile || isUploading}
-                  className="btn-primary flex items-center w-full sm:w-auto"
-                >
-                  {isUploading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      Sending Invitations...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4 mr-2" />
-                      Send Email Invitations
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* Results */}
-              {emailResults && (
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Upload Results</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                    <div className="flex items-center space-x-2">
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                      <span className="text-sm text-gray-600">
-                        Success: <span className="font-medium text-green-600">{emailResults.success}</span>
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <XCircle className="w-5 h-5 text-red-600" />
-                      <span className="text-sm text-gray-600">
-                        Failed: <span className="font-medium text-red-600">{emailResults.failure}</span>
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <AlertCircle className="w-5 h-5 text-yellow-600" />
-                      <span className="text-sm text-gray-600">
-                        Duplicates: <span className="font-medium text-yellow-600">{emailResults.duplicates}</span>
-                      </span>
-                    </div>
-                  </div>
-                  {emailResults.errors.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-900 mb-2">Errors:</h4>
-                      <ul className="text-sm text-red-600 space-y-1">
-                        {emailResults.errors.map((error, index) => (
-                          <li key={index} className="flex items-start space-x-2">
-                            <span className="text-red-500 mt-1">•</span>
-                            <span>{error}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
-          )}
+          </div>
 
-          {activeTab === 'full' && (
-            <div className="space-y-6">
-              {/* Full Import Tab */}
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <div className="flex items-start space-x-3">
-                  <AlertCircle className="w-5 h-5 text-green-600 mt-0.5" />
-                  <div>
-                    <h3 className="text-sm font-medium text-green-800">Full User Import</h3>
-                    <p className="text-sm text-green-700 mt-1">
-                      All fields are optional except Name and Email. Custom links should follow the format: Platform:URL | Platform:URL
+          {/* Limits Information */}
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start space-x-3">
+              <Clock className="w-5 h-5 text-yellow-600 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-medium text-yellow-800">Bulk Invitation Limits</h3>
+                <div className="text-sm text-yellow-700 mt-2 space-y-1">
+                  <p>• Maximum <span className="font-semibold">{BULK_INVITATION_LIMITS.MAX_USERS_PER_BATCH} users</span> per CSV file</p>
+                  <p>• Maximum <span className="font-semibold">{BULK_INVITATION_LIMITS.MAX_DAILY_INVITATIONS} invitations</span> per day</p>
+                  <p className="text-xs text-yellow-600 mt-2">
+                    💡 If you have more than {BULK_INVITATION_LIMITS.MAX_USERS_PER_BATCH} users, split them into multiple CSV files
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Daily Usage Stats */}
+          {/* Removed daily stats display */}
+
+          {/* File Upload */}
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Upload CSV File
+              </label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary-400 transition-colors">
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  id="csv-file-upload"
+                />
+                <label htmlFor="csv-file-upload" className="cursor-pointer">
+                  <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-600">
+                      {csvFile ? csvFile.name : 'Click to upload or drag and drop'}
                     </p>
+                    <p className="text-xs text-gray-500 mt-1">CSV files only</p>
                   </div>
-                </div>
+                </label>
               </div>
+            </div>
 
-              {/* File Upload */}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Upload CSV File
-                  </label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary-400 transition-colors">
-                    <input
-                      type="file"
-                      accept=".csv"
-                      onChange={handleFullFileChange}
-                      className="hidden"
-                      id="full-file-upload"
-                    />
-                    <label htmlFor="full-file-upload" className="cursor-pointer">
-                      <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                      <div className="mt-4">
-                        <p className="text-sm text-gray-600">
-                          {fullFile ? fullFile.name : 'Click to upload or drag and drop'}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">CSV files only</p>
-                      </div>
-                    </label>
-                  </div>
-                </div>
+            {/* Download Sample */}
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={downloadSampleCSV}
+                className="btn-secondary flex items-center text-sm"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download Sample CSV
+              </button>
+            </div>
 
-                {/* Download Sample */}
+            {/* Submit Button */}
+            <button
+              onClick={handleSendEmailInvitations}
+              disabled={ isProcessing}
+              className="btn-primary flex items-center w-full sm:w-auto"
+            >
+              {isProcessing ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  Send Email Invitations
+                </>
+              )}
+            </button>
+
+            {/* Progress Bar */}
+            {isProcessing && progress > 0 && (
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-primary-600 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                ></div>
+              </div>
+            )}
+          </div>
+
+          {/* Send Results */}
+          {sendResult && (
+            <div className="bg-gray-50 rounded-lg p-4 mt-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Send Results</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                 <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => downloadSampleCSV('full')}
-                    className="btn-secondary flex items-center text-sm"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Download Sample CSV
-                  </button>
+                  <Users className="w-5 h-5 text-blue-600" />
+                  <span className="text-sm text-gray-600">
+                    Total: <span className="font-medium text-blue-600">{sendResult.totalUsers}</span>
+                  </span>
                 </div>
-
-                {/* Submit Button */}
-                <button
-                  onClick={handleFullSubmit}
-                  disabled={!fullFile || isUploading}
-                  className="btn-primary flex items-center w-full sm:w-auto"
-                >
-                  {isUploading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      Importing Users...
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      Import Users
-                    </>
-                  )}
-                </button>
+                <div className="flex items-center space-x-2">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <span className="text-sm text-gray-600">
+                    Success: <span className="font-medium text-green-600">{sendResult.successCount}</span>
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <XCircle className="w-5 h-5 text-red-600" />
+                  <span className="text-sm text-gray-600">
+                    Failed: <span className="font-medium text-red-600">{sendResult.errorCount}</span>
+                  </span>
+                </div>
               </div>
-
-              {/* Results */}
-              {fullResults && (
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Import Results</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                    <div className="flex items-center space-x-2">
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                      <span className="text-sm text-gray-600">
-                        Success: <span className="font-medium text-green-600">{fullResults.success}</span>
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <XCircle className="w-5 h-5 text-red-600" />
-                      <span className="text-sm text-gray-600">
-                        Failed: <span className="font-medium text-red-600">{fullResults.failure}</span>
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <AlertCircle className="w-5 h-5 text-yellow-600" />
-                      <span className="text-sm text-gray-600">
-                        Duplicates: <span className="font-medium text-yellow-600">{fullResults.duplicates}</span>
-                      </span>
-                    </div>
-                  </div>
-                  {fullResults.errors.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-900 mb-2">Errors:</h4>
-                      <ul className="text-sm text-red-600 space-y-1">
-                        {fullResults.errors.map((error, index) => (
-                          <li key={index} className="flex items-start space-x-2">
-                            <span className="text-red-500 mt-1">•</span>
-                            <span>{error}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+              {sendResult.results && sendResult.results.some(r => !r.success) && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-900 mb-2">Failed Invitations:</h4>
+                  <ul className="text-sm text-red-600 space-y-1">
+                    {sendResult.results
+                      .filter(r => !r.success)
+                      .map((result, index) => (
+                        <li key={index} className="flex items-start space-x-2">
+                          <span className="text-red-500 mt-1">•</span>
+                          <span>{result.fullName} ({result.email}): {result.error}</span>
+                        </li>
+                      ))}
+                  </ul>
                 </div>
               )}
             </div>
           )}
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      {showConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center space-x-3 mb-4">
+              <AlertCircle className="w-6 h-6 text-blue-600" />
+              <h3 className="text-lg font-medium text-gray-900">Confirm Bulk Invitations</h3>
+            </div>
+            
+            <p className="text-gray-600 mb-6">
+              {getConfirmationMessage()}
+            </p>
+
+            <div className="flex space-x-3">
+              {validationResult && validationResult.newUsers === 0 ? (
+                // Show only "Okay" button when all users are already registered
+                <button
+                  onClick={() => setShowConfirmation(false)}
+                  className="btn-primary flex-1"
+                >
+                  Okay
+                </button>
+              ) : (
+                // Show Cancel and Confirm buttons for normal cases
+                <>
+                  <button
+                    onClick={() => setShowConfirmation(false)}
+                    className="btn-secondary flex-1"
+                    disabled={isProcessing}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleConfirmSend}
+                    className="btn-primary flex-1 flex items-center justify-center"
+                    disabled={isProcessing}
+                  >
+                    {isProcessing ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4 mr-2" />
+                        Confirm & Send
+                      </>
+                    )}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Popup Modal */}
+      {showSuccessPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center space-x-3 mb-4">
+              <CheckCircle className="w-6 h-6 text-green-600" />
+              <h3 className="text-lg font-medium text-gray-900">Invitations Sent Successfully!</h3>
+            </div>
+            
+            <p className="text-gray-600 mb-6">
+              Invitations have been sent to <span className="font-semibold text-green-600">{successCount}</span> user(s).
+            </p>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={handleSuccessPopupClose}
+                className="btn-primary flex-1"
+              >
+                Go to F&F Onboarding
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

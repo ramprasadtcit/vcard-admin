@@ -112,8 +112,9 @@ interface SendResult {
 const BulkImportFFUsers: React.FC = () => {
   const navigate = useNavigate();
   const { addFFUsers } = useFFUsers();
-  const [activeTab, setActiveTab] = useState<'invite' | 'create'>('create'); // Default to USER TABLE creation
-  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [activeTab, setActiveTab] = useState<'invite' | 'create'>('invite');
+  const [inviteCsvFile, setInviteCsvFile] = useState<File | null>(null); // For invite tab
+  const [createCsvFile, setCreateCsvFile] = useState<File | null>(null); // For create tab
   const [isProcessing, setIsProcessing] = useState(false);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [fullUserValidationResult, setFullUserValidationResult] = useState<FullUserValidationResult | null>(null);
@@ -123,11 +124,22 @@ const BulkImportFFUsers: React.FC = () => {
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [successCount, setSuccessCount] = useState(0);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInviteFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && file.type === 'text/csv') {
-      setCsvFile(file);
+      setInviteCsvFile(file);
       setValidationResult(null);
+      setSendResult(null);
+      setShowConfirmation(false);
+    } else {
+      toast.error('Please select a valid CSV file.');
+    }
+  };
+
+  const handleCreateFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type === 'text/csv') {
+      setCreateCsvFile(file);
       setFullUserValidationResult(null);
       setSendResult(null);
       setShowConfirmation(false);
@@ -396,7 +408,7 @@ const BulkImportFFUsers: React.FC = () => {
   };
 
   const handleSendEmailInvitations = async () => {
-    if (!csvFile) {
+    if (!inviteCsvFile) {
       toast.warning('Please upload a CSV file before sending email invitations.');
       return;
     }
@@ -406,7 +418,7 @@ const BulkImportFFUsers: React.FC = () => {
 
     try {
       // Parse CSV
-      const users = await parseInviteCSV(csvFile);
+      const users = await parseInviteCSV(inviteCsvFile);
       setProgress(30);
 
       // Validate users
@@ -427,7 +439,7 @@ const BulkImportFFUsers: React.FC = () => {
   };
 
   const handleCreateFullUsers = async () => {
-    if (!csvFile) {
+    if (!createCsvFile) {
       toast.warning('Please upload a CSV file before creating users.');
       return;
     }
@@ -437,7 +449,7 @@ const BulkImportFFUsers: React.FC = () => {
 
     try {
       // Parse CSV
-      const users = await parseFullUserCSV(csvFile);
+      const users = await parseFullUserCSV(createCsvFile);
       setProgress(30);
 
       // Validate users
@@ -458,7 +470,8 @@ const BulkImportFFUsers: React.FC = () => {
   };
 
   const handleConfirmSend = async () => {
-    if (!csvFile) return;
+    const currentFile = activeTab === 'invite' ? inviteCsvFile : createCsvFile;
+    if (!currentFile) return;
 
     setIsProcessing(true);
     setProgress(0);
@@ -490,7 +503,7 @@ const BulkImportFFUsers: React.FC = () => {
 
       } else if (activeTab === 'create' && fullUserValidationResult) {
         // Parse CSV once to get all users data
-        const allUsers = await parseFullUserCSV(csvFile);
+        const allUsers = await parseFullUserCSV(createCsvFile!);
         
         // Get only valid new users for creation
         const validUsers = fullUserValidationResult.results
@@ -664,19 +677,6 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
           </nav>
         </div>
 
-        {/* Clear indication of which table records will go to */}
-        {/* <div className={`px-6 py-3 border-b ${activeTab === 'invite' ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200'}`}> */}
-          {/* <div className="flex items-center"> */}
-            {/* <div className={`w-3 h-3 rounded-full mr-3 ${activeTab === 'invite' ? 'bg-blue-500' : 'bg-green-500'}`}></div> */}
-            {/* <span className={`font-medium text-sm ${activeTab === 'invite' ? 'text-blue-800' : 'text-green-800'}`}>
-              {activeTab === 'invite' 
-                ? '🔴 RECORDS WILL BE ADDED TO INVITATION TABLE' 
-                : '🟢 RECORDS WILL BE ADDED TO USER TABLE'
-              }
-            </span> */}
-          {/* </div> */}
-        {/* </div> */}
-
         <div className="p-6">
           {/* Tab Content */}
           {activeTab === 'invite' ? (
@@ -742,7 +742,7 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
                 <input
                   type="file"
                   accept=".csv"
-                  onChange={handleFileChange}
+                  onChange={activeTab === 'invite' ? handleInviteFileChange : handleCreateFileChange}
                   className="hidden"
                   id="csv-file-upload"
                 />
@@ -750,7 +750,10 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
                   <Upload className="mx-auto h-12 w-12 text-gray-400" />
                   <div className="mt-4">
                     <p className="text-sm text-gray-600">
-                      {csvFile ? csvFile.name : 'Click to upload or drag and drop'}
+                      {activeTab === 'invite' 
+                        ? (inviteCsvFile ? inviteCsvFile.name : 'Click to upload or drag and drop')
+                        : (createCsvFile ? createCsvFile.name : 'Click to upload or drag and drop')
+                      }
                     </p>
                     <p className="text-xs text-gray-500 mt-1">CSV files only</p>
                   </div>
@@ -772,7 +775,7 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
             {/* Submit Button */}
             <button
               onClick={activeTab === 'invite' ? handleSendEmailInvitations : handleCreateFullUsers}
-              disabled={!csvFile || isProcessing}
+              disabled={!(activeTab === 'invite' ? inviteCsvFile : createCsvFile) || isProcessing}
               className="btn-primary flex items-center w-full sm:w-auto"
             >
               {isProcessing ? (

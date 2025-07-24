@@ -195,38 +195,20 @@ const validationSchema = Yup.object().shape({
   // Validate social links
   socialLinks: Yup.object().shape({
     linkedin: Yup.string()
-      .test('linkedin-url', 'Please enter a valid LinkedIn personal profile URL (e.g., https://www.linkedin.com/in/yourprofile)', function(value) {
+      .test('linkedin-url', 'Please enter a valid URL starting with http or https', function(value) {
         if (!value || value.trim() === '') return true; // Allow empty
-        return /^https?:\/\/(www\.)?linkedin\.com\/in\/[^/?#]{3,}/.test(value);
+        return /^https?:\/\//i.test(value);
       }),
     x: Yup.string()
-      .test('x-url', 'Please enter a valid X (Twitter) URL (e.g., https://x.com/yourhandle)', function(value) {
+      .test('x-url', 'Please enter a valid URL starting with http or https', function(value) {
         if (!value || value.trim() === '') return true; // Allow empty
-        return /^https?:\/\/(www\.)?(x\.com|twitter\.com)\//.test(value);
+        return /^https?:\/\//i.test(value);
       }),
     instagram: Yup.string()
-      .test('instagram-url', 'Please enter a valid Instagram URL (e.g., https://instagram.com/yourhandle)', function(value) {
+      .test('instagram-url', 'Please enter a valid URL starting with http or https', function(value) {
         if (!value || value.trim() === '') return true; // Allow empty
-        return /^https?:\/\/(www\.)?instagram\.com\//.test(value);
+        return /^https?:\/\//i.test(value);
       }),
-  }),
-  // Validate address fields
-  address: Yup.object().shape({
-    street: Yup.string()
-      .max(200, 'Street address cannot exceed 200 characters')
-      .optional(),
-    city: Yup.string()
-      .max(100, 'City name cannot exceed 100 characters')
-      .optional(),
-    state: Yup.string()
-      .max(100, 'State/Province name cannot exceed 100 characters')
-      .optional(),
-    zipCode: Yup.string()
-      .max(20, 'ZIP/Postal code cannot exceed 20 characters')
-      .optional(),
-    country: Yup.string()
-      .required('Country is required')
-      .oneOf(countries.map(c => c.label), 'Please select a valid country')
   }),
   // Validate custom social links
   customSocialLinks: Yup.array().of(
@@ -242,9 +224,9 @@ const validationSchema = Yup.object().shape({
           }
           return true;
         })
-        .test('url-format', 'Please enter a valid URL', function(value) {
+        .test('url-format', 'Please enter a valid URL starting with http or https', function(value) {
           if (!value || value.trim() === '') return true; // Allow empty
-          return /^https?:\/\/.+/.test(value);
+          return /^https?:\/\//i.test(value);
         })
     })
   ),
@@ -404,7 +386,7 @@ const FFUserProfileSetup: React.FC = () => {
       const username = formData.profileUrl.replace('twintik.com/', '');
       const res = await apiService.checkUsernameAvailability(username);
       setUsernameAvailable(res.data?.available);
-      setUsernameSuggestions(res.data?.suggestions || []);
+      // Do NOT update suggestions here
       if (!res.data?.available) {
         setUsernameCheckError('This URL is already taken. Please choose another or pick a suggestion.');
       }
@@ -423,7 +405,6 @@ const FFUserProfileSetup: React.FC = () => {
     setSelectedSuggestion(suggestion);
     setUsernameAvailable(null); // Reset availability check
     setUsernameCheckError(null);
-    
     // Automatically check availability for the selected suggestion
     try {
       setCheckingUsername(true);
@@ -1090,18 +1071,16 @@ const FFUserProfileSetup: React.FC = () => {
                             {formErrors[`additionalEmails.${index}`]}
                           </p>
                         )}
-                        {formData.additionalEmails.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newEmails = formData.additionalEmails.filter((_, i) => i !== index);
-                              setFormData(prev => ({ ...prev, additionalEmails: newEmails }));
-                            }}
-                            className="px-3 py-2 text-red-600 hover:text-red-800 transition-colors"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newEmails = formData.additionalEmails.filter((_, i) => i !== index);
+                            setFormData(prev => ({ ...prev, additionalEmails: newEmails }));
+                          }}
+                          className="px-3 py-2 text-red-600 hover:text-red-800 transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
                       </div>
                     ))}
                     <button
@@ -1169,15 +1148,13 @@ const FFUserProfileSetup: React.FC = () => {
                             </p>
                           )}
                         </div>
-                        {formData.additionalPhones.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeAdditionalPhone(index)}
-                            className="px-3 py-2 text-red-600 hover:text-red-800 transition-colors self-start mt-2"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeAdditionalPhone(index)}
+                          className="px-3 py-2 text-red-600 hover:text-red-800 transition-colors self-start mt-2"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
                       </div>
                     ))}
                     <button

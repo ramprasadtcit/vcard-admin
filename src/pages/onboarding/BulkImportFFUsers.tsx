@@ -665,17 +665,17 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
         </div>
 
         {/* Clear indication of which table records will go to */}
-        <div className={`px-6 py-3 border-b ${activeTab === 'invite' ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200'}`}>
-          <div className="flex items-center">
-            <div className={`w-3 h-3 rounded-full mr-3 ${activeTab === 'invite' ? 'bg-blue-500' : 'bg-green-500'}`}></div>
-            <span className={`font-medium text-sm ${activeTab === 'invite' ? 'text-blue-800' : 'text-green-800'}`}>
+        {/* <div className={`px-6 py-3 border-b ${activeTab === 'invite' ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200'}`}> */}
+          {/* <div className="flex items-center"> */}
+            {/* <div className={`w-3 h-3 rounded-full mr-3 ${activeTab === 'invite' ? 'bg-blue-500' : 'bg-green-500'}`}></div> */}
+            {/* <span className={`font-medium text-sm ${activeTab === 'invite' ? 'text-blue-800' : 'text-green-800'}`}>
               {activeTab === 'invite' 
                 ? '🔴 RECORDS WILL BE ADDED TO INVITATION TABLE' 
                 : '🟢 RECORDS WILL BE ADDED TO USER TABLE'
               }
-            </span>
-          </div>
-        </div>
+            </span> */}
+          {/* </div> */}
+        {/* </div> */}
 
         <div className="p-6">
           {/* Tab Content */}

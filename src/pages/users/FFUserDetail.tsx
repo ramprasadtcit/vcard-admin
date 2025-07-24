@@ -23,6 +23,70 @@ import 'react-toastify/dist/ReactToastify.css';
 import UserAvatar from '../../components/UserAvatar';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
+import Select from 'react-select';
+import { countries } from '../../data';
+
+// Custom styles for react-select to match the existing design
+const selectStyles = {
+  control: (provided: any, state: any) => ({
+    ...provided,
+    border: state.isFocused ? '2px solid #8b5cf6' : '1px solid #d1d5db',
+    borderRadius: '0.375rem',
+    boxShadow: state.isFocused ? '0 0 0 3px rgba(139, 92, 246, 0.1)' : 'none',
+    minHeight: '42px',
+    '&:hover': {
+      border: '1px solid #8b5cf6'
+    },
+    '&:focus-within': {
+      border: '2px solid #8b5cf6',
+      boxShadow: '0 0 0 3px rgba(139, 92, 246, 0.1)'
+    }
+  }),
+  option: (provided: any, state: any) => ({
+    ...provided,
+    backgroundColor: state.isSelected ? '#8b5cf6' : state.isFocused ? '#f3f4f6' : 'white',
+    color: state.isSelected ? 'white' : '#374151',
+    padding: '8px 12px',
+    cursor: 'pointer',
+    '&:hover': {
+      backgroundColor: state.isSelected ? '#8b5cf6' : '#f3f4f6'
+    }
+  }),
+  menu: (provided: any) => ({
+    ...provided,
+    zIndex: 9999,
+    border: '1px solid #e5e7eb',
+    borderRadius: '0.5rem',
+    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+  }),
+  singleValue: (provided: any) => ({
+    ...provided,
+    color: '#374151'
+  }),
+  input: (provided: any) => ({
+    ...provided,
+    color: '#374151'
+  }),
+  placeholder: (provided: any) => ({
+    ...provided,
+    color: '#6b7280'
+  }),
+  indicatorSeparator: (provided: any) => ({
+    ...provided,
+    backgroundColor: '#d1d5db'
+  }),
+  dropdownIndicator: (provided: any) => ({
+    ...provided,
+    color: '#9ca3af'
+  }),
+  clearIndicator: (provided: any) => ({
+    ...provided,
+    color: '#9ca3af',
+    '&:hover': {
+      color: '#6b7280'
+    }
+  })
+};
 
 interface Invitation {
   _id: string;
@@ -943,6 +1007,37 @@ const FFUserDetail: React.FC = () => {
                       onChange={e => handleNestedChange('address', 'zipCode', e.target.value)}
                     />
                   </div>
+                </div>
+                
+                {/* Third row: Country */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                  {editMode ? (
+                    <Select
+                      options={countries}
+                      value={profile?.address?.country ? countries.find(c => c.label === profile?.address?.country) : null}
+                      onChange={(selectedOption) => handleNestedChange('address', 'country', selectedOption?.label || '')}
+                      placeholder="Select a country"
+                      styles={selectStyles}
+                      isSearchable={true}
+                      isClearable={true}
+                      className="w-full"
+                      classNamePrefix="react-select"
+                      formatOptionLabel={(option: any) => (
+                        <div className="flex items-center">
+                          <span className="mr-2">{option.flag}</span>
+                          <span>{option.label}</span>
+                        </div>
+                      )}
+                    />
+                  ) : (
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+                      value={displayValue(profile?.address?.country)}
+                      disabled
+                    />
+                  )}
                 </div>
               </div>
             </div>

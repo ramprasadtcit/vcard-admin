@@ -168,3 +168,93 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #a0aec0;
 }
+
+/* React Select Custom Styles */
+.react-select__control {
+  @apply border border-gray-300 rounded-lg min-h-[42px];
+}
+
+.react-select__control--is-focused {
+  @apply border-purple-500 ring-2 ring-purple-500 ring-opacity-20;
+}
+
+.react-select__control:hover {
+  @apply border-purple-500;
+}
+
+/* Override any default focus styles that might cause blue borders */
+.react-select__control:focus,
+.react-select__control:focus-within {
+  @apply border-purple-500 ring-2 ring-purple-500 ring-opacity-20;
+  outline: none !important;
+}
+
+/* Ensure no blue borders from browser defaults */
+.react-select__control *:focus {
+  outline: none !important;
+}
+
+/* Override any potential blue focus styles */
+.react-select__control,
+.react-select__control *,
+.react-select__input,
+.react-select__value-container,
+.react-select__indicators {
+  outline: none !important;
+  border-color: #d1d5db !important;
+}
+
+.react-select__control--is-focused,
+.react-select__control--is-focused * {
+  border-color: #8b5cf6 !important;
+  outline: none !important;
+}
+
+/* Remove any default browser focus styles */
+.react-select__control:focus,
+.react-select__control:focus-within,
+.react-select__input:focus {
+  outline: none !important;
+  border-color: #8b5cf6 !important;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1) !important;
+}
+
+.react-select__menu {
+  @apply border border-gray-200 rounded-lg shadow-lg;
+}
+
+.react-select__option {
+  @apply px-3 py-2 cursor-pointer;
+}
+
+.react-select__option--is-focused {
+  @apply bg-gray-100;
+}
+
+.react-select__option--is-selected {
+  @apply bg-purple-600 text-white;
+}
+
+.react-select__placeholder {
+  @apply text-gray-500;
+}
+
+.react-select__single-value {
+  @apply text-gray-900;
+}
+
+.react-select__input {
+  @apply text-gray-900;
+}
+
+.react-select__indicator-separator {
+  @apply bg-gray-300;
+}
+
+.react-select__dropdown-indicator {
+  @apply text-gray-400;
+}
+
+.react-select__clear-indicator {
+  @apply text-gray-400 hover:text-gray-600;
+}

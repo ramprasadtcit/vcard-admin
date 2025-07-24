@@ -25,6 +25,7 @@ import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import Select from 'react-select';
 import { countries } from '../../data';
+import { isValidPhoneNumber } from 'react-phone-number-input';
 
 // Custom styles for react-select to match the existing design
 const selectStyles = {
@@ -121,6 +122,13 @@ interface UserProfile {
   orgType?: string;
   phoneNumber?: { value: string; country: string };
   phoneNumbers?: { value: string; country: string }[];
+  address?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    country?: string;
+  };
   socialLinks?: { platform: string; url: string }[];
   googleWallet?: { objectId: string };
   stats?: { views: number; shares: number; connections: number; saves: number };
@@ -145,6 +153,8 @@ const FFUserDetail: React.FC = () => {
   const [additionalEmails, setAdditionalEmails] = useState<{ value: string }[]>([]);
   const [selectedProfilePicture, setSelectedProfilePicture] = useState<File | null>(null);
   const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
+  const [customSocialLinks, setCustomSocialLinks] = useState<{ platform: string; url: string }[]>([]);
 
   useEffect(() => {
     if (location.state?.editMode || location.state?.edit) {
@@ -194,6 +204,13 @@ const FFUserDetail: React.FC = () => {
       } else {
         setAdditionalEmails([]);
       }
+    }
+    // Initialize customSocialLinks from profile in edit mode
+    if (userProfile && userProfile.data && userProfile.data.user && Array.isArray(userProfile.data.user.socialLinks)) {
+      const customLinks = userProfile.data.user.socialLinks.filter(
+        (l: { platform: string; url: string }) => !['linkedin','x','instagram'].includes(l.platform)
+      );
+      setCustomSocialLinks(customLinks);
     }
   }, [userProfile]);
 
@@ -304,6 +321,16 @@ const FFUserDetail: React.FC = () => {
       setEditedProfile(null);
       setSelectedProfilePicture(null);
       setProfilePicturePreview(null);
+      setValidationErrors({});
+      // Reset custom social links to original state
+      if (userProfile && userProfile.data && userProfile.data.user && Array.isArray(userProfile.data.user.socialLinks)) {
+        const customLinks = userProfile.data.user.socialLinks.filter(
+          (l: { platform: string; url: string }) => !['linkedin','x','instagram'].includes(l.platform)
+        );
+        setCustomSocialLinks(customLinks);
+      } else {
+        setCustomSocialLinks([]);
+      }
       // Clear the file input
       const fileInput = document.getElementById('profile-picture-input') as HTMLInputElement;
       if (fileInput) {
@@ -339,14 +366,38 @@ const FFUserDetail: React.FC = () => {
       });
     };
 
-    const handleCustomLinkChange = (idx: number, value: string) => {
+    const handleCustomLinkChange = (idx: number, field: 'platform' | 'url', value: string) => {
+      setCustomSocialLinks(prev => {
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], [field]: value };
+        return updated;
+      });
+      
+      // Also update the editedProfile to keep it in sync
       setEditedProfile(prev => {
         if (!prev) return prev;
         const links = prev.socialLinks ? [...prev.socialLinks] : [];
-        const custom = links.filter(l => !['linkedin','x','instagram'].includes(l.platform));
-        const all = links.filter(l => ['linkedin','x','instagram'].includes(l.platform));
-        custom[idx] = { ...custom[idx], url: value };
-        return { ...prev, socialLinks: [...all, ...custom] };
+        const standard = links.filter(l => ['linkedin','x','instagram'].includes(l.platform));
+        const updatedCustomLinks = [...customSocialLinks];
+        updatedCustomLinks[idx] = { ...updatedCustomLinks[idx], [field]: value };
+        return { ...prev, socialLinks: [...standard, ...updatedCustomLinks] };
+      });
+    };
+
+    const addCustomSocialLink = () => {
+      setCustomSocialLinks(prev => [...prev, { platform: '', url: '' }]);
+    };
+
+    const removeCustomSocialLink = (index: number) => {
+      setCustomSocialLinks(prev => prev.filter((_, i) => i !== index));
+      
+      // Also update the editedProfile to keep it in sync
+      setEditedProfile(prev => {
+        if (!prev) return prev;
+        const links = prev.socialLinks ? [...prev.socialLinks] : [];
+        const standard = links.filter(l => ['linkedin','x','instagram'].includes(l.platform));
+        const updatedCustomLinks = customSocialLinks.filter((_, i) => i !== index);
+        return { ...prev, socialLinks: [...standard, ...updatedCustomLinks] };
       });
     };
 
@@ -429,12 +480,149 @@ const FFUserDetail: React.FC = () => {
       if (!userProfile || !userProfile.data || !userProfile.data.user) return;
       const userId = userProfile.data.user._id || userProfile.data.user.id;
       
-      // Prepare the updated data
+      // Clear previous validation errors
+      setValidationErrors({});
+      
+      // Validation checks similar to mobile app
+      const errors: { [key: string]: string } = {};
+      
+      // Required field validations
+      if (!editedProfile?.jobTitle?.trim()) {
+        errors.jobTitle = 'Job Title is required';
+      }
+      
+      if (!editedProfile?.company?.trim()) {
+        errors.company = 'Company is required';
+      }
+      
+      if (!editedProfile?.email?.trim()) {
+        errors.email = 'Primary Email is required';
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editedProfile.email)) {
+        errors.email = 'Please enter a valid email address';
+      }
+      
+      // Primary phone number validation (required, must not be just country code)
+      if (!editedProfile?.phoneNumber?.value || !editedProfile.phoneNumber.value.trim()) {
+        errors.phoneNumber = 'Primary Phone Number is required';
+      } else {
+        const value = editedProfile.phoneNumber.value.trim();
+        // Remove all non-digit characters except leading +
+        const digits = value.replace(/^\+/, '').replace(/\D/g, '');
+        if (!digits) {
+          errors.phoneNumber = 'Primary Phone Number is required';
+        } else if (/[a-zA-Z]/.test(value)) {
+          errors.phoneNumber = 'Phone number cannot contain alphabets';
+        } else if (!isValidPhoneNumber(value)) {
+          errors.phoneNumber = 'Please enter a valid phone number';
+        }
+      }
+      
+      if (!editedProfile?.address?.country?.trim()) {
+        errors.addressCountry = 'Country is required';
+      }
+      
+      // Phone number format validation (no alphabets and must be valid for country)
+      if (editedProfile?.phoneNumber?.value) {
+        if (/[a-zA-Z]/.test(editedProfile.phoneNumber.value)) {
+          errors.phoneNumber = 'Phone number cannot contain alphabets';
+        } else if (!isValidPhoneNumber(editedProfile.phoneNumber.value)) {
+          errors.phoneNumber = 'Please enter a valid phone number';
+        }
+      }
+      
+      // Additional phone numbers validation (ignore if empty or only country code)
+      additionalPhones.forEach((phone, index) => {
+        const value = phone.value ? phone.value.trim() : '';
+        // Get the country code (e.g., '+91')
+        const countryCode = value.match(/^(\+\d{1,4})/)?.[1] || '';
+        // If value is empty or exactly the country code, skip validation
+        if (!value || value === countryCode) return;
+        if (/[a-zA-Z]/.test(value)) {
+          errors[`additionalPhone${index}`] = 'Phone number cannot contain alphabets';
+        } else if (!isValidPhoneNumber(value)) {
+          errors[`additionalPhone${index}`] = 'Please enter a valid phone number';
+        }
+      });
+      
+      // Website URL validation
+      if (editedProfile?.website && editedProfile.website.trim()) {
+        if (!/^https?:\/\/.+/.test(editedProfile.website)) {
+          errors.website = 'Please enter a valid website URL starting with http:// or https://';
+        }
+      }
+      
+      // Social links validation (platform-specific, strict domain check)
+      if (editedProfile?.socialLinks) {
+        editedProfile.socialLinks.forEach((link: any) => {
+          if (link.url && link.url.trim()) {
+            const url = link.url.trim();
+            const platform = (link.platform || '').toLowerCase();
+            if (platform === 'linkedin') {
+              if (!/^https?:\/\/(www\.)?linkedin\.com\/in\/[^/?#]{3,}/.test(url)) {
+                errors[`socialLink${link.platform}`] = 'Please enter a valid LinkedIn personal profile URL (e.g., https://www.linkedin.com/in/yourprofile)';
+              }
+            } else if (platform === 'x' || platform === 'twitter') {
+              if (!/^https?:\/\/(www\.)?(x\.com|twitter\.com)\//.test(url)) {
+                errors[`socialLink${link.platform}`] = 'Please enter a valid X (Twitter) URL (e.g., https://x.com/yourhandle)';
+              }
+            } else if (platform === 'instagram') {
+              if (!/^https?:\/\/(www\.)?instagram\.com\//.test(url)) {
+                errors[`socialLink${link.platform}`] = 'Please enter a valid Instagram URL (e.g., https://instagram.com/yourhandle)';
+              }
+            } else if (!/^https?:\/\//.test(url)) {
+              errors[`socialLink${link.platform}`] = 'URL must start with http:// or https://';
+            }
+          }
+        });
+      }
+      
+      // Custom social links validation (match vcard-fe: must contain 'http' if filled)
+      if (customSocialLinks && Array.isArray(customSocialLinks)) {
+        customSocialLinks.forEach((link: any, idx: number) => {
+          // Validate platform name
+          if (!link.platform || !link.platform.trim()) {
+            errors[`customSocialLinkPlatform${idx}`] = 'Platform name is required';
+          }
+          
+          // Validate URL if platform is provided
+          if (link.platform && link.platform.trim() && link.url && link.url.trim()) {
+            if (!link.url.includes('http')) {
+              errors[`customSocialLinkUrl${idx}`] = 'URL must start with http:// or https://';
+            }
+          }
+        });
+      }
+      
+      // Show validation errors if any
+      if (Object.keys(errors).length > 0) {
+        setValidationErrors(errors);
+        toast.error('Please fill the required fields');
+        return;
+      }
+      
+      // Defensive filter for phoneNumbers before sending to backend (must have digits after country code, and correct country)
+      const filteredPhones = additionalPhones
+        .filter(p => {
+          if (!p || typeof p.value !== 'string') return false;
+          const value = p.value.trim();
+          const countryCode = value.match(/^(\+\d{1,4})/)?.[1] || '';
+          // Only include if there are digits after the country code
+          return value && value !== countryCode;
+        })
+        .map(p => ({ value: p.value, country: p.country }));
+      console.log('Filtered phoneNumbers to be sent:', filteredPhones);
+      
+      // Prepare the updated data with custom social links
       const updatedData = {
         ...editedProfile,
-        phoneNumbers: additionalPhones.map(p => ({ value: p.value, country: p.country })),
+        phoneNumbers: filteredPhones,
         // Send additionalEmails as array
         additionalEmails: additionalEmails.filter(e => e.value && e.value.trim()).map(e => e.value).join(', '),
+        // Combine standard social links with custom social links
+        socialLinks: [
+          ...(editedProfile?.socialLinks?.filter((l: any) => ['linkedin','x','instagram'].includes(l.platform)) || []),
+          ...customSocialLinks.filter(link => link.platform && link.platform.trim())
+        ],
         updatedBy: 'superadmin', // Always send 'superadmin' from FFUserDetail
       };
 
@@ -707,25 +895,57 @@ const FFUserDetail: React.FC = () => {
               <div className="space-y-4">
                 {/* First row: Job Title and Company */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Job Title</label>
+                                  <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Job Title <span className="text-red-500">*</span></label>
                     <input
                       type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                        validationErrors.jobTitle ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       value={editMode ? (profile?.jobTitle || '') : displayValue(profile?.jobTitle)}
                       disabled={!editMode}
-                      onChange={e => handleChange('jobTitle', e.target.value)}
+                      onChange={e => {
+                        // Only allow alphabets and spaces for job title
+                        const value = e.target.value.replace(/[^A-Za-z ]/g, '');
+                        handleChange('jobTitle', value);
+                        // Clear error when user starts typing
+                        if (validationErrors.jobTitle) {
+                          setValidationErrors(prev => ({ ...prev, jobTitle: '' }));
+                        }
+                      }}
                     />
+                    {validationErrors.jobTitle && (
+                      <p className="text-red-600 text-xs mt-1 flex items-center">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {validationErrors.jobTitle}
+                      </p>
+                    )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Company <span className="text-red-500">*</span></label>
                     <input
                       type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                        validationErrors.company ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       value={editMode ? (profile?.company || '') : displayValue(profile?.company)}
                       disabled={!editMode}
-                      onChange={e => handleChange('company', e.target.value)}
+                      onChange={e => {
+                        // Only allow alphabets and spaces for company
+                        const value = e.target.value.replace(/[^A-Za-z ]/g, '');
+                        handleChange('company', value);
+                        // Clear error when user starts typing
+                        if (validationErrors.company) {
+                          setValidationErrors(prev => ({ ...prev, company: '' }));
+                        }
+                      }}
                     />
+                    {validationErrors.company && (
+                      <p className="text-red-600 text-xs mt-1 flex items-center">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {validationErrors.company}
+                      </p>
+                    )}
                   </div>
                 </div>
                 
@@ -735,11 +955,26 @@ const FFUserDetail: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
                     <input
                       type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                        validationErrors.website ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       value={editMode ? (profile?.website || '') : displayValue(profile?.website)}
                       disabled={!editMode}
-                      onChange={e => handleChange('website', e.target.value)}
+                      onChange={e => {
+                        handleChange('website', e.target.value);
+                        // Clear error when user starts typing
+                        if (validationErrors.website) {
+                          setValidationErrors(prev => ({ ...prev, website: '' }));
+                        }
+                      }}
+                      placeholder="https://example.com"
                     />
+                    {validationErrors.website && (
+                      <p className="text-red-600 text-xs mt-1 flex items-center">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {validationErrors.website}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Profile URL</label>
@@ -786,14 +1021,22 @@ const FFUserDetail: React.FC = () => {
               </div>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Primary Email</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Primary Email <span className="text-red-500">*</span></label>
                   <input
                     type="email"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      validationErrors.email ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     value={editMode ? (profile?.email || '') : displayValue(profile?.email)}
                     disabled={true}
                     onChange={e => handleChange('email', e.target.value)}
                   />
+                  {validationErrors.email && (
+                    <p className="text-red-600 text-xs mt-1 flex items-center">
+                      <AlertCircle className="w-3 h-3 mr-1" />
+                      {validationErrors.email}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Additional Emails</label>
@@ -860,17 +1103,33 @@ const FFUserDetail: React.FC = () => {
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Primary Phone</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Primary Phone <span className="text-red-500">*</span></label>
                   {editMode ? (
-                    <PhoneInput
-                      international
-                      countryCallingCodeEditable={false}
-                      defaultCountry="AE"
-                      value={editedProfile?.phoneNumber?.value || ''}
-                      onChange={handlePrimaryPhoneChange}
-                      placeholder="Enter phone number"
-                      className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300"
-                    />
+                    <>
+                      <PhoneInput
+                        international
+                        countryCallingCodeEditable={false}
+                        defaultCountry="AE"
+                        value={editedProfile?.phoneNumber?.value || ''}
+                        onChange={(value) => {
+                          handlePrimaryPhoneChange(value);
+                          // Clear error when user starts typing
+                          if (validationErrors.phoneNumber) {
+                            setValidationErrors(prev => ({ ...prev, phoneNumber: '' }));
+                          }
+                        }}
+                        placeholder="Enter phone number"
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                          validationErrors.phoneNumber ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      />
+                      {validationErrors.phoneNumber && (
+                        <p className="text-red-600 text-xs mt-1 flex items-center">
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          {validationErrors.phoneNumber}
+                        </p>
+                      )}
+                    </>
                   ) : (
                     <PhoneInput
                       international
@@ -898,13 +1157,25 @@ const FFUserDetail: React.FC = () => {
                               onChange={value => {
                                 const country = phone.country && phone.country.length === 2 ? phone.country : 'AE';
                                 handleAdditionalPhoneChange(index, value || '', country);
+                                // Clear error when user starts typing
+                                if (validationErrors[`additionalPhone${index}`]) {
+                                  setValidationErrors(prev => ({ ...prev, [`additionalPhone${index}`]: '' }));
+                                }
                               }}
                               onCountryChange={country => {
-                                handleAdditionalPhoneChange(index, phone.value, country || 'AE');
+                                handleAdditionalPhoneChange(index, phone.value, country || '');
                               }}
                               placeholder="Enter phone number"
-                              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300"
+                              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                                validationErrors[`additionalPhone${index}`] ? 'border-red-500' : 'border-gray-300'
+                              }`}
                             />
+                            {validationErrors[`additionalPhone${index}`] && (
+                              <p className="text-red-600 text-xs mt-1 flex items-center">
+                                <AlertCircle className="w-3 h-3 mr-1" />
+                                {validationErrors[`additionalPhone${index}`]}
+                              </p>
+                            )}
                           </div>
                           {additionalPhones.length > 1 && (
                             <button
@@ -980,7 +1251,11 @@ const FFUserDetail: React.FC = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       value={editMode ? (profile?.address?.city || '') : displayValue(profile?.address?.city)}
                       disabled={!editMode}
-                      onChange={e => handleNestedChange('address', 'city', e.target.value)}
+                      onChange={e => {
+                        // Only allow alphabets and spaces for city
+                        const value = e.target.value.replace(/[^A-Za-z ]/g, '');
+                        handleNestedChange('address', 'city', value);
+                      }}
                     />
                   </div>
                 </div>
@@ -994,7 +1269,11 @@ const FFUserDetail: React.FC = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       value={editMode ? (profile?.address?.state || '') : displayValue(profile?.address?.state)}
                       disabled={!editMode}
-                      onChange={e => handleNestedChange('address', 'state', e.target.value)}
+                      onChange={e => {
+                        // Only allow alphabets and spaces for state
+                        const value = e.target.value.replace(/[^A-Za-z ]/g, '');
+                        handleNestedChange('address', 'state', value);
+                      }}
                     />
                   </div>
                   <div>
@@ -1011,25 +1290,45 @@ const FFUserDetail: React.FC = () => {
                 
                 {/* Third row: Country */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Country <span className="text-red-500">*</span></label>
                   {editMode ? (
-                    <Select
-                      options={countries}
-                      value={profile?.address?.country ? countries.find(c => c.label === profile?.address?.country) : null}
-                      onChange={(selectedOption) => handleNestedChange('address', 'country', selectedOption?.label || '')}
-                      placeholder="Select a country"
-                      styles={selectStyles}
-                      isSearchable={true}
-                      isClearable={true}
-                      className="w-full"
-                      classNamePrefix="react-select"
-                      formatOptionLabel={(option: any) => (
-                        <div className="flex items-center">
-                          <span className="mr-2">{option.flag}</span>
-                          <span>{option.label}</span>
-                        </div>
+                    <>
+                      <Select
+                        options={countries}
+                        value={profile?.address?.country ? countries.find(c => c.label === profile?.address?.country) : null}
+                        onChange={(selectedOption) => {
+                          handleNestedChange('address', 'country', selectedOption?.label || '');
+                          // Clear error when user selects
+                          if (validationErrors.addressCountry) {
+                            setValidationErrors(prev => ({ ...prev, addressCountry: '' }));
+                          }
+                        }}
+                        placeholder="Select a country"
+                        styles={{
+                          ...selectStyles,
+                          control: (provided: any, state: any) => ({
+                            ...selectStyles.control(provided, state),
+                            border: validationErrors.addressCountry ? '1px solid #ef4444' : selectStyles.control(provided, state).border
+                          })
+                        }}
+                        isSearchable={true}
+                        isClearable={true}
+                        className="w-full"
+                        classNamePrefix="react-select"
+                        formatOptionLabel={(option: any) => (
+                          <div className="flex items-center">
+                            <span className="mr-2">{option.flag}</span>
+                            <span>{option.label}</span>
+                          </div>
+                        )}
+                      />
+                      {validationErrors.addressCountry && (
+                        <p className="text-red-600 text-xs mt-1 flex items-center">
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          {validationErrors.addressCountry}
+                        </p>
                       )}
-                    />
+                    </>
                   ) : (
                     <input
                       type="text"
@@ -1058,11 +1357,26 @@ const FFUserDetail: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">{display}</label>
                     <input
                       type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                        validationErrors[`socialLink${key}`] ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       value={editMode ? (profile?.socialLinks?.find((l: { platform: string; url: string }) => l.platform === key)?.url || '') : displayValue(profile?.socialLinks?.find((l: { platform: string; url: string }) => l.platform === key)?.url)}
                       disabled={!editMode}
-                      onChange={e => handleSocialLinkChange(key, e.target.value)}
+                      onChange={e => {
+                        handleSocialLinkChange(key, e.target.value);
+                        // Clear error when user starts typing
+                        if (validationErrors[`socialLink${key}`]) {
+                          setValidationErrors(prev => ({ ...prev, [`socialLink${key}`]: '' }));
+                        }
+                      }}
+                      placeholder={`https://${key.toLowerCase()}.com/yourprofile`}
                     />
+                    {validationErrors[`socialLink${key}`] && (
+                      <p className="text-red-600 text-xs mt-1 flex items-center">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {validationErrors[`socialLink${key}`]}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1078,21 +1392,92 @@ const FFUserDetail: React.FC = () => {
                 Custom Social Links
               </div>
               <div className="space-y-4">
-                {customLinks.length > 0 ? (
-                  customLinks.map((l: { platform: string; url: string }, idx: number) => (
-                    <div key={idx}>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">{l.platform}</label>
-                      <input
-                        type="text"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        value={l.url || ''}
-                        disabled={!editMode}
-                        onChange={e => handleCustomLinkChange(idx, e.target.value)}
-                      />
+                {customSocialLinks.length > 0 ? (
+                  customSocialLinks.map((l: { platform: string; url: string }, idx: number) => (
+                    <div key={idx} className="space-y-2">
+                      {/* <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-700">Custom Link {idx + 1}</span>
+                      </div> */}
+                      <div className="flex md:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Platform Name</label>
+                          <input
+                            type="text"
+                            className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                              validationErrors[`customSocialLinkPlatform${idx}`] ? 'border-red-500' : 'border-gray-300'
+                            }`}
+                            value={l.platform || ''}
+                            disabled={!editMode}
+                            onChange={e => {
+                              handleCustomLinkChange(idx, 'platform', e.target.value);
+                              // Clear error when user starts typing
+                              if (validationErrors[`customSocialLinkPlatform${idx}`]) {
+                                setValidationErrors(prev => ({ ...prev, [`customSocialLinkPlatform${idx}`]: '' }));
+                              }
+                            }}
+                            placeholder="e.g., Facebook, YouTube, TikTok"
+                          />
+                          {validationErrors[`customSocialLinkPlatform${idx}`] && (
+                            <p className="text-red-600 text-xs flex items-center mt-1">
+                              <AlertCircle className="w-3 h-3 mr-1" />
+                              {validationErrors[`customSocialLinkPlatform${idx}`]}
+                            </p>
+                          )}
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">URL</label>
+                          <input
+                            type="text"
+                            className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                              validationErrors[`customSocialLinkUrl${idx}`] ? 'border-red-500' : 'border-gray-300'
+                            }`}
+                            value={l.url || ''}
+                            disabled={!editMode}
+                            onChange={e => {
+                              handleCustomLinkChange(idx, 'url', e.target.value);
+                              // Clear error when user starts typing
+                              if (validationErrors[`customSocialLinkUrl${idx}`]) {
+                                setValidationErrors(prev => ({ ...prev, [`customSocialLinkUrl${idx}`]: '' }));
+                              }
+                            }}
+                            placeholder="https://example.com/yourprofile"
+                          />
+                          {validationErrors[`customSocialLinkUrl${idx}`] && (
+                            <p className="text-red-600 text-xs flex items-center mt-1">
+                              <AlertCircle className="w-3 h-3 mr-1" />
+                              {validationErrors[`customSocialLinkUrl${idx}`]}
+                            </p>
+                          )}
+                        </div>
+
+                        {editMode && (
+                          <div className="flex items-end">
+                            <button
+                              type="button"
+                              onClick={() => removeCustomSocialLink(idx)}
+                              className="h-10 px-3 py-2 hover:bg-gray-200 rounded-md text-red-600 hover:text-red-800 transition-colors border border-gray-300"
+                              title="Remove custom social link"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))
                 ) : (
                   <div className="text-gray-400 text-sm">No custom links</div>
+                )}
+                {editMode && (
+                  <button
+                    type="button"
+                    onClick={addCustomSocialLink}
+                    className="text-sm text-purple-600 hover:text-purple-800 flex items-center transition-colors mt-4"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add custom social link
+                  </button>
                 )}
               </div>
             </div>
@@ -1109,9 +1494,9 @@ const FFUserDetail: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Subscription Plan</label>
                     <input
                       type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
                       value={profile?.subscription?.plan || ''}
-                      disabled={!editMode}
+                      disabled={true}
                       onChange={e => handleNestedChange('subscription', 'plan', e.target.value)}
                     />
                   </div>
@@ -1119,9 +1504,9 @@ const FFUserDetail: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Subscription Status</label>
                     <input
                       type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
                       value={profile?.subscription?.status || ''}
-                      disabled={!editMode}
+                      disabled={true}
                       onChange={e => handleNestedChange('subscription', 'status', e.target.value)}
                     />
                   </div>

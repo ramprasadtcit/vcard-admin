@@ -217,7 +217,7 @@ Jane Smith,jane.smith@example.com,+1234567891,"+1987654322,+1555987654","jane2@e
             socialLinks: {
               linkedin: 'https://linkedin.com/in/johndoe',
               instagram: 'https://instagram.com/johndoe',
-              twitter: 'https://x.com/johndoe'
+              x: 'https://x.com/johndoe'
             }
           }
         },
@@ -247,7 +247,7 @@ Jane Smith,jane.smith@example.com,+1234567891,"+1987654322,+1555987654","jane2@e
             socialLinks: {
               linkedin: 'https://linkedin.com/in/janesmith',
               instagram: 'https://instagram.com/janesmith',
-              twitter: 'https://x.com/janesmith'
+              x: 'https://x.com/janesmith'
             }
           }
         }

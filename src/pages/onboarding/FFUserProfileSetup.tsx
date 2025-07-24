@@ -10,7 +10,7 @@ import {
   MapPin, 
   Globe, 
   Linkedin, 
-  Twitter, 
+  X as Twitter, 
   Instagram, 
   Camera,
   Save,
@@ -50,7 +50,7 @@ interface ProfileFormData {
   // Social Links
   socialLinks: {
     linkedin: string;
-    twitter: string;
+    x: string;
     instagram: string;
     [key: string]: string;
   };
@@ -135,8 +135,8 @@ const validationSchema = Yup.object().shape({
         if (!value || value.trim() === '') return true; // Allow empty
         return /^https?:\/\/.+/.test(value);
       }),
-    twitter: Yup.string()
-      .test('twitter-url', 'Please enter a valid URL starting with http', function(value) {
+      x: Yup.string()
+    .test('x-url', 'Please enter a valid URL starting with http', function(value) {
         if (!value || value.trim() === '') return true; // Allow empty
         return /^https?:\/\/.+/.test(value);
       }),
@@ -168,6 +168,8 @@ const FFUserProfileSetup: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [tokenValid, setTokenValid] = useState(false);
   const [tokenExpired, setTokenExpired] = useState(false);
+  const [userAlreadyRegistered, setUserAlreadyRegistered] = useState(false);
+  const [invitationNotFound, setInvitationNotFound] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
   const [invitationId, setInvitationId] = useState<string | null>(null);
@@ -191,7 +193,7 @@ const FFUserProfileSetup: React.FC = () => {
     },
     socialLinks: {
       linkedin: '',
-      twitter: '',
+      x: '',
       instagram: ''
     },
     customSocialLinks: [],
@@ -206,118 +208,67 @@ const FFUserProfileSetup: React.FC = () => {
   const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(null);
   const [usernameCheckError, setUsernameCheckError] = useState<string | null>(null);
 
-  // Simulate token validation
+  // Validate invitation token on page load
   useEffect(() => {
     const validateToken = async () => {
       setLoading(true);
       try {
-        // Fetch invitation data from backend
-        const currentDate = new Date().toISOString();
-        const response: any = await apiService.post('/invitation/validate', { token, currentDate });
-        console.log('Invitation data:', response);
+        // Call the new backend endpoint to validate invitation by token
+        const response: any = await apiService.get(`/invitation/token/${token}`);
+        console.log('Invitation validation response:', response);
+        
         if (response && response.invitation) {
+          // Token is valid, set invitation data
+          setTokenValid(true);
+          setTokenExpired(false);
+          setInvitationId(response.invitation._id);
+          
+          // Pre-fill form with invitation data
           setFormData(prev => ({
             ...prev,
             fullName: response.invitation.username || '',
             email: response.invitation.emailAddress || '',
           }));
-          setInvitationId(response.invitation._id || null);
+          
+          // Check if user is already registered by checking if invitation has userId
+          if (response.invitation.userId) {
+            // User is already registered, show appropriate message
+            setTokenValid(false);
+            setTokenExpired(false);
+            setUserAlreadyRegistered(true);
+          }
         }
-      } catch (err) {
-        console.error('Error fetching invitation data:', err);
+      } catch (error: any) {
+        console.error('Error validating invitation token:', error);
+        
+        // Handle different error cases
+        if (error.response?.status === 410) {
+          // Invitation expired
+          setTokenExpired(true);
+          setTokenValid(false);
+        } else if (error.response?.status === 400 && error.response?.data?.completed) {
+          // Invitation already used (user already registered)
+          setTokenValid(false);
+          setTokenExpired(false);
+          setUserAlreadyRegistered(true);
+        } else if (error.response?.status === 404) {
+          // Invitation not found
+          setTokenValid(false);
+          setTokenExpired(false);
+          setInvitationNotFound(true);
+        } else {
+          // Other errors
+          setTokenValid(false);
+          setTokenExpired(false);
+        }
+      } finally {
+        setLoading(false);
       }
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock token validation
-      if (token === 'ff-token-expired-123') {
-        setTokenExpired(true);
-        setTokenValid(false);
-      } else if (token && token.startsWith('ff-token-')) {
-        setTokenValid(true);
-        setTokenExpired(false);
-        
-                 // Mock user data
-         const mockUser: FFUser = {
-           id: 'ff-1',
-           fullName: 'Sarah Johnson',
-           email: 'sarah.johnson@example.com',
-           status: 'in_progress',
-           onboardingToken: token,
-           onboardingLink: `https://admin.twintik.com/onboard/${token}`,
-           invitedBy: 'john@twintik.com',
-           invitedAt: '2024-01-15T10:00:00Z',
-           tokenExpiresAt: '2024-01-22T10:00:00Z',
-           profileData: {
-             jobTitle: 'Senior Developer',
-             company: 'TechCorp Solutions',
-             website: 'https://sarahjohnson.dev',
-             profileUrl: 'twintik.com/card/sarahjohnson',
-             phone: '+1-555-0123',
-             additionalPhones: ['+1-555-0124'],
-             email: 'sarah.johnson@example.com',
-             additionalEmails: ['sarah.j@example.com'],
-             address: {
-               street: '123 Tech Street',
-               city: 'San Francisco',
-               state: 'CA',
-               zipCode: '94105',
-               country: 'United States'
-             },
-             socialLinks: {
-               linkedin: 'https://linkedin.com/in/sarahjohnson',
-               twitter: 'https://twitter.com/sarahj',
-               github: 'https://github.com/sarahj'
-             },
-             customSocialLinks: [
-               { platform: 'TikTok', url: 'https://tiktok.com/@sarahj' },
-               { platform: 'Snapchat', url: 'https://snapchat.com/add/sarahj' }
-             ],
-             profilePicture: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
-             bio: 'Passionate about creating innovative digital solutions.'
-           }
-         };
-        
-                 // User data is set in formData, no need for separate user state
-        
-                 // Pre-fill form with existing data
-         if (mockUser.profileData) {
-           setFormData({
-             fullName: mockUser.fullName,
-             jobTitle: mockUser.profileData.jobTitle || '',
-             company: mockUser.profileData.company || '',
-             website: mockUser.profileData.website || '',
-             profileUrl: mockUser.profileData.profileUrl || '',
-             email: mockUser.profileData.email || '',
-             additionalEmails: mockUser.profileData.additionalEmails || [''],
-             phone: mockUser.profileData.phone || '',
-             additionalPhones: mockUser.profileData.additionalPhones || [''],
-             address: {
-               street: mockUser.profileData.address?.street || '',
-               city: mockUser.profileData.address?.city || '',
-               state: mockUser.profileData.address?.state || '',
-               zipCode: mockUser.profileData.address?.zipCode || '',
-               country: mockUser.profileData.address?.country || ''
-             },
-             socialLinks: {
-               linkedin: mockUser.profileData.socialLinks?.linkedin || '',
-               twitter: mockUser.profileData.socialLinks?.twitter || '',
-               instagram: mockUser.profileData.socialLinks?.instagram || ''
-             },
-             customSocialLinks: mockUser.profileData.customSocialLinks || [],
-             profilePicture: mockUser.profileData.profilePicture || '',
-             bio: mockUser.profileData.bio || ''
-           });
-         }
-      } else {
-        setTokenValid(false);
-        setTokenExpired(false);
-      }
-      
-      setLoading(false);
     };
 
-    validateToken();
+    if (token) {
+      validateToken();
+    }
   }, [token]);
 
   useEffect(() => {
@@ -378,7 +329,7 @@ const FFUserProfileSetup: React.FC = () => {
   const handlePickSuggestion = async (suggestion: string) => {
     setFormData(prev => ({
       ...prev,
-      profileUrl: `twintik.com/${suggestion}`
+      profileUrl: `https://twintik.com/${suggestion}`
     }));
     setSelectedSuggestion(suggestion);
     setUsernameAvailable(null); // Reset availability check
@@ -589,10 +540,10 @@ const FFUserProfileSetup: React.FC = () => {
             url: formData.socialLinks.linkedin,
             isPublic: true
           }] : []),
-          // Twitter (as 'x')
-          ...(formData.socialLinks.twitter ? [{
+          // X (formerly Twitter)
+          ...(formData.socialLinks.x ? [{
             platform: 'x',
-            url: formData.socialLinks.twitter,
+            url: formData.socialLinks.x,
             isPublic: true
           }] : []),
           // Instagram
@@ -642,33 +593,59 @@ const FFUserProfileSetup: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Validating your invitation...</p>
-        </div>
-      </div>
-    );
-  }
+
 
   if (tokenExpired) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Link Expired</h1>
-          <p className="text-gray-600 mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Invitation Expired</h1>
+          <p className="text-gray-600">
             This invitation link has expired. Please contact the administrator to request a new invitation.
           </p>
-          <button
-            onClick={() => navigate('/')}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Go Home
-          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (userAlreadyRegistered) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
+          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Already Registered</h1>
+          <p className="text-gray-600">
+            This invitation has already been used to create a profile. If you need to update your profile, please contact the administrator.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (invitationNotFound) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
+          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Invalid Invitation</h1>
+          <p className="text-gray-600">
+            This invitation link is invalid or has been removed. Please contact the administrator for assistance.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+
+
+  // Show loading while validating or if token is not valid
+  if (loading || !tokenValid) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Validating your invitation...</p>
         </div>
       </div>
     );
@@ -857,7 +834,7 @@ const FFUserProfileSetup: React.FC = () => {
       type="text"
       value={formData.profileUrl.replace('twintik.com/', '')}
       onChange={(e) => {
-        handleInputChange('profileUrl', `twintik.com/${e.target.value}`);
+        handleInputChange('profileUrl', `https://twintik.com/${e.target.value}`);
         setUsernameAvailable(null);
         setSelectedSuggestion(null);
         setUsernameCheckError(null);
@@ -1215,22 +1192,22 @@ const FFUserProfileSetup: React.FC = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
                     <Twitter className="w-4 h-4 mr-2 text-blue-400" />
-                    Twitter
+                    X
                   </label>
                   <input
                     type="url"
-                    value={formData.socialLinks.twitter}
-                    onChange={(e) => handleSocialLinkChange('twitter', e.target.value)}
+                    value={formData.socialLinks.x}
+                    onChange={(e) => handleSocialLinkChange('x', e.target.value)}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                      formErrors['socialLinks.twitter'] ? 'border-red-500' : 'border-gray-300'
+                      formErrors['socialLinks.x'] ? 'border-red-500' : 'border-gray-300'
                     }`}
-                    placeholder="https://twitter.com/yourhandle"
-                    data-error={!!formErrors['socialLinks.twitter']}
+                    placeholder="https://x.com/yourhandle"
+                    data-error={!!formErrors['socialLinks.x']}
                   />
-                  {formErrors['socialLinks.twitter'] && (
+                  {formErrors['socialLinks.x'] && (
                     <p className="text-red-600 text-xs mt-1 flex items-center">
                       <AlertCircle className="w-3 h-3 mr-1" />
-                      {formErrors['socialLinks.twitter']}
+                      {formErrors['socialLinks.x']}
                     </p>
                   )}
                 </div>

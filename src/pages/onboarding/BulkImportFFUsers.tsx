@@ -346,9 +346,6 @@ Charlie Wilson,charlie.wilson@example.com
                 <div className="text-sm text-yellow-700 mt-2 space-y-1">
                   <p>• Maximum <span className="font-semibold">{BULK_INVITATION_LIMITS.MAX_USERS_PER_BATCH} users</span> per CSV file</p>
                   <p>• Maximum <span className="font-semibold">{BULK_INVITATION_LIMITS.MAX_DAILY_INVITATIONS} invitations</span> per day</p>
-                  <p className="text-xs text-yellow-600 mt-2">
-                    💡 If you have more than {BULK_INVITATION_LIMITS.MAX_USERS_PER_BATCH} users, split them into multiple CSV files
-                  </p>
                 </div>
               </div>
             </div>

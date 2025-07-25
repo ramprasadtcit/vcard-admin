@@ -71,7 +71,7 @@ const EmailInvitationTemplate: React.FC<EmailInvitationTemplateProps> = ({
             <li style={{ marginBottom: '8px' }}>Digital card accessible via QR code and link</li>
             <li style={{ marginBottom: '8px' }}>Analytics to track who views your card</li>
             <li style={{ marginBottom: '8px' }}>Mobile app for advanced management</li>
-            <li style={{ marginBottom: '0' }}>Apple Wallet & Google Wallet integration</li>
+            {/* <li style={{ marginBottom: '0' }}>Apple Wallet & Google Wallet integration</li> */}
           </ul>
         </div>
 

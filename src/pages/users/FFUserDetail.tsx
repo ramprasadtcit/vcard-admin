@@ -130,7 +130,6 @@ interface UserProfile {
     country?: string;
   };
   socialLinks?: { platform: string; url: string }[];
-  googleWallet?: { objectId: string };
   stats?: { views: number; shares: number; connections: number; saves: number };
   subscription?: { plan: string; status: string };
   createdAt?: string;
@@ -648,7 +647,7 @@ const FFUserDetail: React.FC = () => {
     const performSave = async (updatedData: any, userId: string) => {
       // Remove fields that should not be updated
       const fieldsToRemove = [
-        '_id', 'id', 'createdAt', 'updatedAt', '__v', 'stats', 'qrCodeUrl', 'googleWallet'
+        '_id', 'id', 'createdAt', 'updatedAt', '__v', 'stats', 'qrCodeUrl'
       ];
       fieldsToRemove.forEach(field => {
         delete updatedData[field];

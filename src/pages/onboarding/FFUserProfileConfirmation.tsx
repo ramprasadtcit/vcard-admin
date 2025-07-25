@@ -143,7 +143,7 @@ const FFUserProfileConfirmation: React.FC = () => {
                   <p className="text-sm text-green-700">Know who viewed your card and when.</p>
                 </div>
               </div>
-              <div className="flex items-start space-x-3">
+              {/* <div className="flex items-start space-x-3">
                 <div className="w-5 h-5 bg-green-600 text-white rounded-full flex items-center justify-center text-xs font-medium mt-0.5">
                   💳
                 </div>
@@ -151,7 +151,8 @@ const FFUserProfileConfirmation: React.FC = () => {
                   <p className="font-medium text-green-900">Apple Wallet & Google Wallet</p>
                   <p className="text-sm text-green-700">Add your digital card directly to your mobile wallet for instant access.</p>
                 </div>
-              </div>
+              </div> */}
+
             </div>
             <div className="mt-4 p-3 bg-green-100 rounded-lg">
               <p className="text-sm text-green-800">

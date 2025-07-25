@@ -260,7 +260,7 @@ const FFUserProfileSetup: React.FC = () => {
       city: '',
       state: '',
       zipCode: '',
-      country: 'United Arab Emirates' // Default to UAE
+      country: '' // No default value - let user select
     },
     socialLinks: {
       linkedin: '',
@@ -297,7 +297,7 @@ const FFUserProfileSetup: React.FC = () => {
           // Pre-fill form with invitation data
           setFormData(prev => ({
             ...prev,
-            fullName: response.invitation.username || '',
+            fullName: response.invitation.fullName || '',
             email: response.invitation.emailAddress || '',
           }));
           
@@ -1223,7 +1223,7 @@ const FFUserProfileSetup: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Country <span style={{ color: 'red' }}>*</span>
+                    Country
                   </label>
                   <Select
                     options={countries}

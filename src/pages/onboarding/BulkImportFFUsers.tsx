@@ -167,7 +167,7 @@ const BulkImportFFUsers: React.FC = () => {
     }
   };
 
-  const parseInviteCSV = (file: File): Promise<CSVUser[]> => {
+  const parseInviteCSV = (file: File): Promise<{ users: CSVUser[]; duplicateCount: number; duplicateEmails: string[] }> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -195,16 +195,25 @@ const BulkImportFFUsers: React.FC = () => {
 
           // Parse data rows
           const users: CSVUser[] = [];
+          const emailSet = new Set<string>(); // Track unique emails
+          const duplicateEmails: string[] = []; // Track duplicate emails for reporting
+          
           for (let i = 1; i < nonEmptyLines.length; i++) {
             const line = nonEmptyLines[i];
             const values = line.split(',').map(v => v.trim());
             
             if (values.length >= Math.max(nameIndex, emailIndex) + 1) {
               const fullName = values[nameIndex];
-              const email = values[emailIndex];
+              const email = values[emailIndex].toLowerCase(); // Normalize email
               
               if (fullName && email) {
-                users.push({ fullName, email });
+                // Check for duplicates within CSV
+                if (emailSet.has(email)) {
+                  duplicateEmails.push(email);
+                } else {
+                  emailSet.add(email);
+                  users.push({ fullName, email });
+                }
               }
             }
           }
@@ -214,13 +223,23 @@ const BulkImportFFUsers: React.FC = () => {
             return;
           }
 
+          // Report duplicates if any
+          if (duplicateEmails.length > 0) {
+            const uniqueDuplicates = Array.from(new Set(duplicateEmails));
+            console.warn(`Found ${duplicateEmails.length} duplicate emails in CSV. Removed duplicates: ${uniqueDuplicates.join(', ')}`);
+          }
+
           // Check batch size limit
           if (users.length > BULK_INVITATION_LIMITS.MAX_USERS_PER_BATCH) {
-            reject(new Error(`CSV contains ${users.length} users, which exceeds the maximum limit of ${BULK_INVITATION_LIMITS.MAX_USERS_PER_BATCH} users per batch. Please split your CSV into smaller files with a maximum of ${BULK_INVITATION_LIMITS.MAX_USERS_PER_BATCH} users each.`));
+            reject(new Error(`CSV contains ${users.length} users (after removing duplicates), which exceeds the maximum limit of ${BULK_INVITATION_LIMITS.MAX_USERS_PER_BATCH} users per batch. Please split your CSV into smaller files with a maximum of ${BULK_INVITATION_LIMITS.MAX_USERS_PER_BATCH} users each.`));
             return;
           }
 
-          resolve(users);
+          resolve({ 
+            users, 
+            duplicateCount: duplicateEmails.length, 
+            duplicateEmails: Array.from(new Set(duplicateEmails))
+          });
         } catch (error) {
           reject(new Error('Failed to parse CSV file'));
         }
@@ -230,7 +249,7 @@ const BulkImportFFUsers: React.FC = () => {
     });
   };
 
-  const parseFullUserCSV = (file: File): Promise<FullCSVUser[]> => {
+  const parseFullUserCSV = (file: File): Promise<{ users: FullCSVUser[]; duplicateCount: number; duplicateEmails: string[] }> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -287,6 +306,9 @@ const BulkImportFFUsers: React.FC = () => {
 
           // Parse data rows
           const users: FullCSVUser[] = [];
+          const emailSet = new Set<string>(); // Track unique emails
+          const duplicateEmails: string[] = []; // Track duplicate emails for reporting
+          
           for (let i = 1; i < nonEmptyLines.length; i++) {
             const line = nonEmptyLines[i];
             const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, '')); // Remove quotes
@@ -297,9 +319,19 @@ const BulkImportFFUsers: React.FC = () => {
             }
             
             const fullName = values[nameIndex];
-            const email = values[emailIndex];
+            const email = values[emailIndex]?.toLowerCase(); // Normalize email
             const username = values[usernameIndex];
             const phone = values[phoneIndex];
+            
+            // Check for duplicates within CSV (by email)
+            if (email && emailSet.has(email)) {
+              duplicateEmails.push(email);
+              continue; // Skip this duplicate
+            }
+            
+            if (email) {
+              emailSet.add(email);
+            }
             
             // Send ALL records to backend (including incomplete ones) for proper validation
             const user: FullCSVUser = {
@@ -332,13 +364,23 @@ const BulkImportFFUsers: React.FC = () => {
             return;
           }
 
+          // Report duplicates if any
+          if (duplicateEmails.length > 0) {
+            const uniqueDuplicates = Array.from(new Set(duplicateEmails));
+            console.warn(`Found ${duplicateEmails.length} duplicate emails in CSV. Removed duplicates: ${uniqueDuplicates.join(', ')}`);
+          }
+
           // Check batch size limit
           if (users.length > BULK_INVITATION_LIMITS.MAX_USERS_PER_BATCH) {
-            reject(new Error(`CSV contains ${users.length} users, which exceeds the maximum limit of ${BULK_INVITATION_LIMITS.MAX_USERS_PER_BATCH} users per batch. Please split your CSV into smaller files with a maximum of ${BULK_INVITATION_LIMITS.MAX_USERS_PER_BATCH} users each.`));
+            reject(new Error(`CSV contains ${users.length} users (after removing duplicates), which exceeds the maximum limit of ${BULK_INVITATION_LIMITS.MAX_USERS_PER_BATCH} users per batch. Please split your CSV into smaller files with a maximum of ${BULK_INVITATION_LIMITS.MAX_USERS_PER_BATCH} users each.`));
             return;
           }
 
-          resolve(users);
+          resolve({ 
+            users, 
+            duplicateCount: duplicateEmails.length, 
+            duplicateEmails: Array.from(new Set(duplicateEmails))
+          });
     } catch (error) {
           reject(new Error('Failed to parse CSV file'));
         }
@@ -439,8 +481,15 @@ const BulkImportFFUsers: React.FC = () => {
 
     try {
       // Parse CSV
-      const users = await parseInviteCSV(inviteCsvFile);
+      const parseResult = await parseInviteCSV(inviteCsvFile);
+      const { users, duplicateCount, duplicateEmails } = parseResult;
       setProgress(30);
+
+      // Show duplicate notification if any
+      if (duplicateCount > 0) {
+        const uniqueDuplicates = Array.from(new Set(duplicateEmails));
+        toast.info(`Found ${duplicateCount} duplicate emails in CSV. Removed duplicates: ${uniqueDuplicates.join(', ')}`);
+      }
 
       // Validate users
       const validation = await validateUsers(users);
@@ -470,8 +519,15 @@ const BulkImportFFUsers: React.FC = () => {
 
     try {
       // Parse CSV
-      const users = await parseFullUserCSV(createCsvFile);
+      const parseResult = await parseFullUserCSV(createCsvFile);
+      const { users, duplicateCount, duplicateEmails } = parseResult;
       setProgress(30);
+
+      // Show duplicate notification if any
+      if (duplicateCount > 0) {
+        const uniqueDuplicates = Array.from(new Set(duplicateEmails));
+        toast.info(`Found ${duplicateCount} duplicate emails in CSV. Removed duplicates: ${uniqueDuplicates.join(', ')}`);
+      }
 
       // Validate users
       const validation = await validateFullUsers(users);
@@ -524,7 +580,8 @@ const BulkImportFFUsers: React.FC = () => {
 
       } else if (activeTab === 'create' && fullUserValidationResult) {
         // Parse CSV once to get all users data
-        const allUsers = await parseFullUserCSV(createCsvFile!);
+        const parseResult = await parseFullUserCSV(createCsvFile!);
+        const { users: allUsers } = parseResult;
         
         // Get only valid new users for creation
         const validUsers = fullUserValidationResult.results

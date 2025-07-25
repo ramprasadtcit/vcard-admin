@@ -176,13 +176,6 @@ const FFUserProfileConfirmation: React.FC = () => {
                 <p className="text-sm text-purple-700">support@twintik.com</p>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
-              <Phone className="w-5 h-5 text-purple-600" />
-              <div>
-                <p className="font-medium text-purple-900">Phone Support</p>
-                <p className="text-sm text-purple-700">+1 (555) 123-4567</p>
-              </div>
-            </div>
           </div>
         </div>
 

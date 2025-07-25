@@ -515,9 +515,7 @@ const FFUserDetail: React.FC = () => {
         }
       }
       
-      if (!editedProfile?.address?.country?.trim()) {
-        errors.addressCountry = 'Country is required';
-      }
+      // Country is optional - no validation required
       
       // Phone number format validation (no alphabets and must be valid for country)
       if (editedProfile?.phoneNumber?.value) {
@@ -1304,7 +1302,7 @@ const FFUserDetail: React.FC = () => {
                 
                 {/* Third row: Country */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Country <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
                   {editMode ? (
                     <>
                       <Select

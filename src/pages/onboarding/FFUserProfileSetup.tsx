@@ -198,16 +198,28 @@ const validationSchema = Yup.object().shape({
       .test('linkedin-url', 'Please enter a valid URL starting with http or https', function(value) {
         if (!value || value.trim() === '') return true; // Allow empty
         return /^https?:\/\//i.test(value);
+      })
+      .test('linkedin-url-complete', 'Please enter a complete URL with domain', function(value) {
+        if (!value || value.trim() === '') return true; // Allow empty
+        return /^https?:\/\/[^\/\s]+/i.test(value);
       }),
     x: Yup.string()
       .test('x-url', 'Please enter a valid URL starting with http or https', function(value) {
         if (!value || value.trim() === '') return true; // Allow empty
         return /^https?:\/\//i.test(value);
+      })
+      .test('x-url-complete', 'Please enter a complete URL with domain', function(value) {
+        if (!value || value.trim() === '') return true; // Allow empty
+        return /^https?:\/\/[^\/\s]+/i.test(value);
       }),
     instagram: Yup.string()
       .test('instagram-url', 'Please enter a valid URL starting with http or https', function(value) {
         if (!value || value.trim() === '') return true; // Allow empty
         return /^https?:\/\//i.test(value);
+      })
+      .test('instagram-url-complete', 'Please enter a complete URL with domain', function(value) {
+        if (!value || value.trim() === '') return true; // Allow empty
+        return /^https?:\/\/[^\/\s]+/i.test(value);
       }),
   }),
   // Validate custom social links
@@ -227,6 +239,10 @@ const validationSchema = Yup.object().shape({
         .test('url-format', 'Please enter a valid URL starting with http or https', function(value) {
           if (!value || value.trim() === '') return true; // Allow empty
           return /^https?:\/\//i.test(value);
+        })
+        .test('url-complete', 'Please enter a complete URL with domain', function(value) {
+          if (!value || value.trim() === '') return true; // Allow empty
+          return /^https?:\/\/[^\/\s]+/i.test(value);
         })
     })
   ),

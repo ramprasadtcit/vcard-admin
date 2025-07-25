@@ -542,6 +542,16 @@ const FFUserDetail: React.FC = () => {
         }
       });
       
+      // Additional emails validation
+      additionalEmails.forEach((email, index) => {
+        const value = email.value ? email.value.trim() : '';
+        // If value is empty, skip validation
+        if (!value) return;
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+          errors[`additionalEmail${index}`] = 'Please enter a valid email address';
+        }
+      });
+      
       // Website URL validation
       if (editedProfile?.website && editedProfile.website.trim()) {
         if (!/^https?:\/\/.+/.test(editedProfile.website)) {
@@ -549,18 +559,20 @@ const FFUserDetail: React.FC = () => {
         }
       }
       
-      // Social links validation (simple: must contain http or https if filled)
+      // Social links validation (must have proper URL with domain)
       if (editedProfile?.socialLinks) {
         editedProfile.socialLinks.forEach((link: any) => {
           if (link.url && link.url.trim()) {
             const url = link.url.trim();
             if (!/^https?:\/\//i.test(url)) {
               errors[`socialLink${link.platform}`] = 'URL must start with http:// or https://';
+            } else if (!/^https?:\/\/[^\/\s]+/i.test(url)) {
+              errors[`socialLink${link.platform}`] = 'Please enter a complete URL with domain';
             }
           }
         });
       }
-      // Custom social links validation (simple: must contain http or https if filled)
+      // Custom social links validation (must have proper URL with domain)
       if (customSocialLinks && Array.isArray(customSocialLinks)) {
         customSocialLinks.forEach((link: any, idx: number) => {
           // Validate platform name
@@ -573,8 +585,11 @@ const FFUserDetail: React.FC = () => {
           }
           // Validate URL if platform is provided and url is filled
           if (link.platform && link.platform.trim() && link.url && link.url.trim()) {
-            if (!/^https?:\/\//i.test(link.url)) {
+            const url = link.url.trim();
+            if (!/^https?:\/\//i.test(url)) {
               errors[`customSocialLinkUrl${idx}`] = 'URL must start with http:// or https://';
+            } else if (!/^https?:\/\/[^\/\s]+/i.test(url)) {
+              errors[`customSocialLinkUrl${idx}`] = 'Please enter a complete URL with domain';
             }
           }
         });
@@ -1031,13 +1046,29 @@ const FFUserDetail: React.FC = () => {
                     <div className="space-y-2">
                       {additionalEmails.map((email, index) => (
                         <div key={index} className="flex items-center space-x-2">
-                          <input
-                            type="email"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-2"
-                            value={email.value}
-                            onChange={e => handleAdditionalEmailChange(index, e.target.value)}
-                            placeholder="Enter additional email"
-                          />
+                          <div className="flex-1">
+                            <input
+                              type="email"
+                              className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-2 ${
+                                validationErrors[`additionalEmail${index}`] ? 'border-red-500' : 'border-gray-300'
+                              }`}
+                              value={email.value}
+                              onChange={e => {
+                                handleAdditionalEmailChange(index, e.target.value);
+                                // Clear error when user starts typing
+                                if (validationErrors[`additionalEmail${index}`]) {
+                                  setValidationErrors(prev => ({ ...prev, [`additionalEmail${index}`]: '' }));
+                                }
+                              }}
+                              placeholder="Enter additional email"
+                            />
+                            {validationErrors[`additionalEmail${index}`] && (
+                              <p className="text-red-600 text-xs flex items-center mb-2">
+                                <AlertCircle className="w-3 h-3 mr-1" />
+                                {validationErrors[`additionalEmail${index}`]}
+                              </p>
+                            )}
+                          </div>
                           <button
                             type="button"
                             onClick={() => removeAdditionalEmail(index)}

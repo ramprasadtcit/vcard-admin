@@ -1214,7 +1214,7 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
             <p className="text-gray-600 mb-6">
               {activeTab === 'invite' 
                 ? `Invitations have been sent to ${successCount} user(s).`
-                : `${successCount} user profile(s) have been created successfully.`
+                : `${successCount} user profile(s) have been created successfully with invitations.`
               }
             </p>
 

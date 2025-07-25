@@ -192,58 +192,17 @@ const validationSchema = Yup.object().shape({
       return true;
     })
   ),
-  // Validate social links
+  // Social links - no validation
   socialLinks: Yup.object().shape({
-    linkedin: Yup.string()
-      .test('linkedin-url', 'Please enter a valid URL starting with http or https', function(value) {
-        if (!value || value.trim() === '') return true; // Allow empty
-        return /^https?:\/\//i.test(value);
-      })
-      .test('linkedin-url-complete', 'Please enter a complete URL with domain', function(value) {
-        if (!value || value.trim() === '') return true; // Allow empty
-        return /^https?:\/\/[^\/\s]+/i.test(value);
-      }),
-    x: Yup.string()
-      .test('x-url', 'Please enter a valid URL starting with http or https', function(value) {
-        if (!value || value.trim() === '') return true; // Allow empty
-        return /^https?:\/\//i.test(value);
-      })
-      .test('x-url-complete', 'Please enter a complete URL with domain', function(value) {
-        if (!value || value.trim() === '') return true; // Allow empty
-        return /^https?:\/\/[^\/\s]+/i.test(value);
-      }),
-    instagram: Yup.string()
-      .test('instagram-url', 'Please enter a valid URL starting with http or https', function(value) {
-        if (!value || value.trim() === '') return true; // Allow empty
-        return /^https?:\/\//i.test(value);
-      })
-      .test('instagram-url-complete', 'Please enter a complete URL with domain', function(value) {
-        if (!value || value.trim() === '') return true; // Allow empty
-        return /^https?:\/\/[^\/\s]+/i.test(value);
-      }),
+    linkedin: Yup.string().optional(),
+    x: Yup.string().optional(),
+    instagram: Yup.string().optional(),
   }),
-  // Validate custom social links
+  // Custom social links - no validation
   customSocialLinks: Yup.array().of(
     Yup.object().shape({
-      platform: Yup.string()
-        .min(1, 'Platform name is required')
-        .max(50, 'Platform name cannot exceed 50 characters'),
-      url: Yup.string()
-        .test('url-required-if-platform', 'Profile URL is required', function(value) {
-          const { platform } = this.parent;
-          if (platform && platform.trim() && (!value || !value.trim())) {
-            return this.createError({ message: 'Profile URL is required' });
-          }
-          return true;
-        })
-        .test('url-format', 'Please enter a valid URL starting with http or https', function(value) {
-          if (!value || value.trim() === '') return true; // Allow empty
-          return /^https?:\/\//i.test(value);
-        })
-        .test('url-complete', 'Please enter a complete URL with domain', function(value) {
-          if (!value || value.trim() === '') return true; // Allow empty
-          return /^https?:\/\/[^\/\s]+/i.test(value);
-        })
+      platform: Yup.string().optional(),
+      url: Yup.string().optional(),
     })
   ),
 });
@@ -816,7 +775,7 @@ const FFUserProfileSetup: React.FC = () => {
                     }}
                   />
                   <p className="mt-1 text-xs text-gray-500">
-                    Upload a professional headshot (recommended: 400x400px)
+                    Upload a profile picture
                   </p>
                 </div>
               </div>

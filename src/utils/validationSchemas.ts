@@ -65,11 +65,8 @@ export const editProfileSchema = yup.object().shape({
     .optional(),
   socialLinks: yup.array().of(
     yup.object().shape({
-      platform: yup.string(),
-      url: yup.string().test('has-http', 'Invalid URL format', value => {
-        if (!value || value.trim() === '') return true;
-        return value.includes('http');
-      })
+      platform: yup.string().optional(),
+      url: yup.string().optional(),
     })
   ),
 }); 

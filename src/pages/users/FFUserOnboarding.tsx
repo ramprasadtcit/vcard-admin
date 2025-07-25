@@ -307,7 +307,7 @@ const FFUserOnboarding: React.FC = () => {
     setDeleting(true);
     try {
       await apiService.delete(`/invitation/${selectedUser._id}`);
-      toast.success(`User ${selectedUser.username} deleted successfully`);
+      toast.success(`User ${selectedUser.fullName} deleted successfully`);
       setShowDeleteModal(false);
       setSelectedUser(null);
       fetchInvitations(); // Refresh the list

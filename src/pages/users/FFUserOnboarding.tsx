@@ -735,7 +735,7 @@ const FFUserOnboarding: React.FC = () => {
               <h3 className="text-lg font-medium text-gray-900">Delete User</h3>
             </div>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to delete <strong>{selectedUser.username}</strong>? This action cannot be undone.
+              Are you sure you want to delete <strong>{selectedUser.fullName || ''}</strong>? This action cannot be undone.
             </p>
             <div className="flex space-x-3">
               <button

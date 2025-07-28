@@ -463,6 +463,10 @@ const FFUserProfileSetup: React.FC = () => {
   };
 
   const addAdditionalPhone = () => {
+    if (formData.additionalPhones.length >= 3) {
+      alert('Maximum 3 additional phone numbers allowed');
+      return;
+    }
     setFormData(prev => ({
       ...prev,
       additionalPhones: [...prev.additionalPhones, '']
@@ -1078,14 +1082,16 @@ const FFUserProfileSetup: React.FC = () => {
                         </button>
                       </div>
                     ))}
-                    <button
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, additionalEmails: [...prev.additionalEmails, ''] }))}
-                      className="text-sm text-purple-600 hover:text-purple-800 flex items-center transition-colors"
-                    >
-                      <Plus className="w-4 h-4 mr-1" />
-                      Add another email
-                    </button>
+                    {formData.additionalEmails.length < 3 && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, additionalEmails: [...prev.additionalEmails, ''] }))}
+                        className="text-sm text-purple-600 hover:text-purple-800 flex items-center transition-colors"
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Add another email
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1152,14 +1158,16 @@ const FFUserProfileSetup: React.FC = () => {
                         </button>
                       </div>
                     ))}
-                    <button
-                      type="button"
-                      onClick={addAdditionalPhone}
-                      className="text-sm text-purple-600 hover:text-purple-800 flex items-center transition-colors"
-                    >
-                      <Plus className="w-4 h-4 mr-1" />
-                      Add another phone number
-                    </button>
+                    {formData.additionalPhones.length < 3 && (
+                      <button
+                        type="button"
+                        onClick={addAdditionalPhone}
+                        className="text-sm text-purple-600 hover:text-purple-800 flex items-center transition-colors"
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Add another phone number
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

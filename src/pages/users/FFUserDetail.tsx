@@ -155,6 +155,7 @@ const FFUserDetail: React.FC = () => {
   const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
   const [customSocialLinks, setCustomSocialLinks] = useState<{ platform: string; url: string }[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (location.state?.editMode || location.state?.edit) {
@@ -414,6 +415,10 @@ const FFUserDetail: React.FC = () => {
     };
 
     const addAdditionalPhone = () => {
+      if (additionalPhones.length >= 3) {
+        toast.error('Maximum 3 additional phone numbers allowed');
+        return;
+      }
       setAdditionalPhones(prev => [...prev, { value: '', country: '' }]);
     };
 
@@ -430,6 +435,10 @@ const FFUserDetail: React.FC = () => {
     };
 
     const addAdditionalEmail = () => {
+      if (additionalEmails.length >= 3) {
+        toast.error('Maximum 3 additional emails allowed');
+        return;
+      }
       setAdditionalEmails(prev => [...prev, { value: '' }]);
     };
 
@@ -475,6 +484,9 @@ const FFUserDetail: React.FC = () => {
 
     const handleSave = async () => {
       if (!userProfile || !userProfile.data || !userProfile.data.user) return;
+      if (isSaving) return; // Prevent multiple clicks
+      
+      setIsSaving(true);
       const userId = userProfile.data.user._id || userProfile.data.user.id;
       
       // Clear previous validation errors
@@ -592,12 +604,13 @@ const FFUserDetail: React.FC = () => {
         });
       }
       
-      // Show validation errors if any
-      if (Object.keys(errors).length > 0) {
-        setValidationErrors(errors);
-        toast.error('Please fill the required fields');
-        return;
-      }
+              // Show validation errors if any
+        if (Object.keys(errors).length > 0) {
+          setValidationErrors(errors);
+          toast.error('Please fill the required fields');
+          setIsSaving(false);
+          return;
+        }
       
       // Defensive filter for phoneNumbers before sending to backend (must have digits after country code, and correct country)
       const filteredPhones = additionalPhones
@@ -689,6 +702,8 @@ const FFUserDetail: React.FC = () => {
       } catch (error: any) {
         const errorMsg = error?.response?.data?.message || 'Failed to update user profile';
         toast.error(errorMsg);
+      } finally {
+        setIsSaving(false);
       }
     };
 
@@ -751,7 +766,23 @@ const FFUserDetail: React.FC = () => {
               <button onClick={handleEdit} className="btn btn-primary flex items-center"><Pencil className="w-4 h-4 mr-1" /> Edit Profile</button>
             ) : (
               <div className="flex gap-2">
-                <button onClick={handleSave} className="btn btn-success flex items-center"><Save className="w-4 h-4 mr-1" /> Save</button>
+                <button 
+                  onClick={handleSave} 
+                  disabled={isSaving}
+                  className="btn btn-success flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSaving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 mr-1" />
+                      Save
+                    </>
+                  )}
+                </button>
                 <button onClick={handleCancel} className="btn btn-secondary flex items-center"><Close className="w-4 h-4 mr-1" /> Cancel</button>
               </div>
             )}
@@ -1075,14 +1106,16 @@ const FFUserDetail: React.FC = () => {
                           </button>
                         </div>
                       ))}
-                      <button
-                        type="button"
-                        onClick={addAdditionalEmail}
-                        className="text-sm text-purple-600 hover:text-purple-800 flex items-center transition-colors"
-                      >
-                        <Plus className="w-4 h-4 mr-1" />
-                        Add additional email
-                      </button>
+                      {additionalEmails.length < 3 && (
+                        <button
+                          type="button"
+                          onClick={addAdditionalEmail}
+                          className="text-sm text-purple-600 hover:text-purple-800 flex items-center transition-colors"
+                        >
+                          <Plus className="w-4 h-4 mr-1" />
+                          Add additional email
+                        </button>
+                      )}
                     </div>
                   ) : (
                     (() => {
@@ -1199,14 +1232,16 @@ const FFUserDetail: React.FC = () => {
                           </button>
                         </div>
                       ))}
-                      <button
-                        type="button"
-                        onClick={addAdditionalPhone}
-                        className="text-sm text-purple-600 hover:text-purple-800 flex items-center transition-colors"
-                      >
-                        <Plus className="w-4 h-4 mr-1" />
-                        Add another phone number
-                      </button>
+                      {additionalPhones.length < 3 && (
+                        <button
+                          type="button"
+                          onClick={addAdditionalPhone}
+                          className="text-sm text-purple-600 hover:text-purple-800 flex items-center transition-colors"
+                        >
+                          <Plus className="w-4 h-4 mr-1" />
+                          Add another phone number
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <div className="space-y-2">

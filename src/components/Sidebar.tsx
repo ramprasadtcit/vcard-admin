@@ -38,11 +38,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
   const isActive = (path: string) => location.pathname === path;
 
   const toggleExpanded = (path: string) => {
-    setExpandedItems(prev => 
-      prev.includes(path) 
-        ? prev.filter(item => item !== path)
-        : [...prev, path]
-    );
+    setExpandedItems(prev => {
+      // If the clicked item is already expanded, close it
+      if (prev.includes(path)) {
+        return prev.filter(item => item !== path);
+      }
+      // If clicking a new parent, close all other expanded items and open the new one
+      return [path];
+    });
   };
 
   const getIconComponent = (iconName: string) => {

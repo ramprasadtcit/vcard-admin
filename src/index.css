@@ -17,6 +17,24 @@
   --primary-900: #1e3a8a;
 }
 
+/* Global Placeholder Styles - Reduced Opacity */
+::placeholder {
+  opacity: 0.4 !important;
+  color: #6b7280 !important;
+}
+
+/* React Select Placeholder - Reduced Opacity */
+.react-select__placeholder {
+  opacity: 0.4 !important;
+  color: #6b7280 !important;
+}
+
+/* Phone Input Placeholder - Reduced Opacity */
+.PhoneInputInput::placeholder {
+  opacity: 0.4 !important;
+  color: #6b7280 !important;
+}
+
 /* Enhanced Card Styles */
 .card {
   @apply bg-white rounded-xl shadow-sm border border-gray-100 p-6 transition-all duration-200 hover:shadow-md;
@@ -237,6 +255,7 @@
 
 .react-select__placeholder {
   @apply text-gray-500;
+  opacity: 0.4 !important;
 }
 
 .react-select__single-value {

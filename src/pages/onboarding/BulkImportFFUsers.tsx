@@ -72,12 +72,19 @@ interface FullUserValidationResult {
   validUsers: number;
   invalidUsers: number;
   missingFieldsUsers: number;
+  invalidPhoneUsers: number;
   duplicateUsers: number;
   results: Array<{
     fullName: string;
     email: string;
     username: string;
     phone: string;
+    originalPhone?: string;
+    additionalPhones?: Array<{
+      value: string;
+      country: string;
+      original: string;
+    }>;
     isExisting: boolean;
     isValid: boolean;
     errors?: string[];
@@ -87,7 +94,16 @@ interface FullUserValidationResult {
       phone?: boolean;
     };
     missingFields?: string[];
-    reason?: 'VALID' | 'DUPLICATE_FIELDS' | 'MISSING_FIELDS';
+    phoneValidationError?: string;
+    additionalPhoneErrors?: string[];
+    phoneValidation?: {
+      isValid: boolean;
+      formattedNumber: string;
+      countryCode: string;
+      type: string;
+      isMobile: boolean;
+    };
+    reason?: 'VALID' | 'DUPLICATE_FIELDS' | 'MISSING_FIELDS' | 'INVALID_PHONE' | 'INVALID_ADDITIONAL_PHONES';
     existingUserEmail?: string;
     existingUsername?: string;
     existingPhone?: string;
@@ -629,12 +645,16 @@ Charlie Wilson,charlie.wilson@example.com
 # Note: Maximum 50 users per CSV file`;
     } else {
       csvContent = `Full Name,Email,Username,Phone,Job Title,Company,Website,Bio,Additional Emails,Additional Phones,Street,City,State,Zip Code,Country,LinkedIn,X,Instagram,Custom Social Links
-John Doe,john.doe@example.com,johndoe,+1-555-0123,Senior Developer,TechCorp,https://johndoe.dev,Passionate developer with 5+ years experience,john.d@example.com,+1-555-0124,"123 Tech Street","San Francisco",CA,94105,"United States",https://linkedin.com/in/johndoe,https://x.com/johndoe,https://instagram.com/johndoe,"TikTok:https://tiktok.com/@johndoe;GitHub:https://github.com/johndoe"
-Jane Smith,jane.smith@example.com,janesmith,+1-555-0125,Product Manager,InnovateInc,https://janesmith.com,Product strategy and user experience expert,jane.s@example.com,+1-555-0126,"456 Innovation Ave","New York",NY,10001,"United States",https://linkedin.com/in/janesmith,https://x.com/janesmith,https://instagram.com/janesmith,"Medium:https://medium.com/@janesmith"
-Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Director,CreativeAgency,,Creative marketer with a passion for storytelling,bob.j@example.com,,"789 Creative Lane",London,"",SW1A 1AA,"United Kingdom",https://linkedin.com/in/bobjohnson,https://x.com/bobjohnson,,
+John Doe,john.doe@example.com,johndoe,+971 50 123 4567,Senior Developer,TechCorp,https://johndoe.dev,Passionate developer with 5+ years experience,john.d@example.com,"+971 50 123 4568,+971 50 123 4569","123 Tech Street","San Francisco",CA,94105,"United States",https://linkedin.com/in/johndoe,https://x.com/johndoe,https://instagram.com/johndoe,"TikTok:https://tiktok.com/@johndoe;GitHub:https://github.com/johndoe"
+Jane Smith,jane.smith@example.com,janesmith,+971 50 123 4567,Product Manager,InnovateInc,https://janesmith.com,Product strategy and user experience expert,jane.s@example.com,"+971 50 123 4568,+971 50 123 4569","456 Innovation Ave","Dubai","",12345,"United Arab Emirates",https://linkedin.com/in/janesmith,https://x.com/janesmith,https://instagram.com/janesmith,"Medium:https://medium.com/@janesmith"
+Bob Johnson,bob.johnson@example.com,bobjohnson,+44 20 7946 0958,Marketing Director,CreativeAgency,,Creative marketer with a passion for storytelling,bob.j@example.com,"+44 20 7946 0959,+44 20 7946 0960","789 Creative Lane",London,"",SW1A 1AA,"United Kingdom",https://linkedin.com/in/bobjohnson,https://x.com/bobjohnson,,
+Alice Brown,alice.brown@example.com,alicebrown,+91 98765 43210,UX Designer,DesignStudio,,User experience and interface design specialist,alice.b@example.com,"+91 98765 43211,+91 98765 43212","321 Design Blvd","Mumbai","Maharashtra",400001,"India",https://linkedin.com/in/alicebrown,https://x.com/alicebrown,https://instagram.com/alicebrown,
+Sarah Wilson,sarah.wilson@example.com,sarahwilson,+61 2 9876 5432,Data Scientist,DataCorp,,Data analysis and machine learning expert,sarah.w@example.com,"+61 2 9876 5433,+61 2 9876 5434","654 Data Street","Sydney","NSW",2000,"Australia",https://linkedin.com/in/sarahwilson,https://x.com/sarahwilson,https://instagram.com/sarahwilson,
 # Note: Maximum 50 users per CSV file
 # REQUIRED FIELDS: Full Name, Email, Username, Phone
 # OPTIONAL FIELDS: All other fields
+# PHONE FORMAT: Must include country code (e.g., +971 50 123 4567 or +971501234567)
+# ADDITIONAL PHONES: Multiple phones separated by comma or semicolon (e.g., "+971 50 123 4568,+971 50 123 4569")
 # Custom Social Links format: Platform:URL;Platform:URL (semicolon separated)
 # Additional Emails/Phones: comma or semicolon separated`;
     }
@@ -662,7 +682,7 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
         return `${existingUsers} user(s) already registered. Confirm to send invitations to ${newUsers} new user(s)?`;
       }
     } else if (activeTab === 'create' && fullUserValidationResult) {
-      const { totalUsers, validUsers, missingFieldsUsers, duplicateUsers } = fullUserValidationResult;
+      const { totalUsers, validUsers, missingFieldsUsers, invalidPhoneUsers, duplicateUsers } = fullUserValidationResult;
 
       if (validUsers === 0) {
         return 'No valid new users to create.';
@@ -672,6 +692,9 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
         const issues = [];
         if (missingFieldsUsers > 0) {
           issues.push(`${missingFieldsUsers} missing required fields`);
+        }
+        if (invalidPhoneUsers > 0) {
+          issues.push(`${invalidPhoneUsers} invalid phone numbers`);
         }
         if (duplicateUsers > 0) {
           issues.push(`${duplicateUsers} duplicates`);
@@ -786,6 +809,7 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
                     <div className="text-xs text-green-600 mt-2">
                       <p><strong>Required:</strong> Full Name, Email, Username, Phone</p>
                       <p><strong>Optional:</strong> Job Title, Company, Website, Bio, Address, Social Links, etc.</p>
+                      <p><strong>Phone Validation:</strong> All phone numbers must include country code and will be validated for format and country consistency</p>
                     </div>
                   </div>
                 </div>
@@ -1090,6 +1114,7 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
                   <div>Total Users: <span className="font-medium">{fullUserValidationResult.totalUsers}</span></div>
                   <div>Valid Users: <span className="font-medium text-green-600">{fullUserValidationResult.validUsers}</span></div>
                   <div>Missing Fields: <span className="font-medium text-orange-600">{fullUserValidationResult.missingFieldsUsers || 0}</span></div>
+                  <div>Invalid Phone Numbers: <span className="font-medium text-purple-600">{fullUserValidationResult.invalidPhoneUsers || 0}</span></div>
                   <div>Duplicate Users: <span className="font-medium text-red-600">{fullUserValidationResult.duplicateUsers || 0}</span></div>
               </div>
 
@@ -1107,6 +1132,12 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
                       <div className="flex flex-wrap gap-2 text-xs">
                         {fullUserValidationResult.results.some(r => r.reason === 'MISSING_FIELDS') && (
                           <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded">⚠️ Missing required fields</span>
+                        )}
+                        {fullUserValidationResult.results.some(r => r.reason === 'INVALID_PHONE') && (
+                          <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded">📱 Invalid phone numbers</span>
+                        )}
+                        {fullUserValidationResult.results.some(r => r.reason === 'INVALID_ADDITIONAL_PHONES') && (
+                          <span className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded">📞 Invalid additional phones</span>
                         )}
                         {fullUserValidationResult.results.some(r => r.duplicateFields?.email) && (
                           <span className="bg-red-100 text-red-800 px-2 py-1 rounded">📧 Email conflicts</span>
@@ -1127,6 +1158,7 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
                             <th className="px-3 py-2 text-left font-medium text-gray-700 border-r border-gray-200">Email</th>
                             <th className="px-3 py-2 text-left font-medium text-gray-700 border-r border-gray-200">Username</th>
                             <th className="px-3 py-2 text-left font-medium text-gray-700 border-r border-gray-200">Phone</th>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700 border-r border-gray-200">Additional Phones</th>
                             <th className="px-3 py-2 text-left font-medium text-gray-700">Issues</th>
                           </tr>
                         </thead>
@@ -1135,7 +1167,9 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
                             .filter(result => !result.isValid)
                             .map((result, index) => {
                               const isMissingFields = result.reason === 'MISSING_FIELDS';
-                              const bgColor = isMissingFields ? 'bg-orange-50' : 'bg-red-50';
+                              const isInvalidPhone = result.reason === 'INVALID_PHONE';
+                              const isInvalidAdditionalPhones = result.reason === 'INVALID_ADDITIONAL_PHONES';
+                              const bgColor = isMissingFields ? 'bg-orange-50' : isInvalidPhone ? 'bg-purple-50' : isInvalidAdditionalPhones ? 'bg-indigo-50' : 'bg-red-50';
                               
                               return (
                                 <tr key={index} className={`border-b border-gray-200 ${bgColor}`}>
@@ -1186,7 +1220,12 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
                                       {result.phone === 'N/A' ? (
                                         <span className="text-gray-400 italic">Missing</span>
                                       ) : (
-                                        result.phone
+                                        <div>
+                                          <div>{result.phone}</div>
+                                          {result.originalPhone && result.originalPhone !== result.phone && (
+                                            <div className="text-xs text-gray-500">Original: {result.originalPhone}</div>
+                                          )}
+                                        </div>
                                       )}
                                     </div>
                                     {result.duplicateFields?.phone && (
@@ -1194,6 +1233,34 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
                                     )}
                                     {result.missingFields?.includes('phone') && (
                                       <div className="text-xs text-orange-600 mt-1">Required field missing</div>
+                                    )}
+                                    {result.phoneValidationError && (
+                                      <div className="text-xs text-purple-600 mt-1">{result.phoneValidationError}</div>
+                                    )}
+                                  </td>
+                                  <td className="px-3 py-2 border-r border-gray-200">
+                                    <div className="text-sm text-gray-700">
+                                      {result.additionalPhones && result.additionalPhones.length > 0 ? (
+                                        <div className="space-y-1">
+                                          {result.additionalPhones.map((phone, idx) => (
+                                            <div key={idx} className="text-xs">
+                                              <div>{phone.value}</div>
+                                              {phone.original !== phone.value && (
+                                                <div className="text-gray-500">Original: {phone.original}</div>
+                                              )}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        <span className="text-gray-400 italic">None</span>
+                                      )}
+                                    </div>
+                                    {result.additionalPhoneErrors && (
+                                      <div className="text-xs text-indigo-600 mt-1">
+                                        {result.additionalPhoneErrors.map((error, idx) => (
+                                          <div key={idx}>{error}</div>
+                                        ))}
+                                      </div>
                                     )}
                                   </td>
                                   <td className="px-3 py-2">
@@ -1204,6 +1271,20 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
                                           ⚠️ {field === 'fullName' ? 'Name' : field === 'email' ? 'Email' : field === 'username' ? 'Username' : 'Phone'}
                                         </span>
                                       ))}
+                                      
+                                      {/* Invalid phone badge */}
+                                      {result.reason === 'INVALID_PHONE' && (
+                                        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                                          📱 Invalid Phone
+                                        </span>
+                                      )}
+                                      
+                                      {/* Invalid additional phones badge */}
+                                      {result.reason === 'INVALID_ADDITIONAL_PHONES' && (
+                                        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
+                                          📞 Invalid Additional Phones
+                                        </span>
+                                      )}
                                       
                                       {/* Duplicate fields badges */}
                                       {result.duplicateFields?.email && (
@@ -1217,7 +1298,7 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
                                         </span>
                                       )}
                                       {result.duplicateFields?.phone && (
-                                        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                                        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-800">
                                           📱 Phone
                                         </span>
                                       )}

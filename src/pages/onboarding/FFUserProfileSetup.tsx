@@ -25,6 +25,7 @@ import {
 import { FFUser } from '../../types/user';
 import { ComingSoonOverlay } from '../../components';
 import { countries } from '../../data';
+import twintikLogo from '../../assets/twintik-logo.svg';
 
 // Custom styles for react-select to match the existing design
 const selectStyles = {
@@ -761,13 +762,11 @@ const FFUserProfileSetup: React.FC = () => {
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center">
-              <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">T</span>
-              </div>
-              <h1 className="ml-3 text-xl font-semibold text-gray-900">
-                TwinTik Digital Card Setup
-              </h1>
+                          <div className="flex items-center">
+                <img src={twintikLogo} alt="TwinTik Logo" className="w-20 h-5" />
+                <h1 className="ml-4 text-xl font-semibold text-gray-900">
+                  Digital Card Setup
+                </h1>
             </div>
 
           </div>

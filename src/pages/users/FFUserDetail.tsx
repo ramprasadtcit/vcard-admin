@@ -27,6 +27,7 @@ import 'react-phone-number-input/style.css';
 import Select from 'react-select';
 import { countries } from '../../data';
 import { isValidPhoneNumber } from 'react-phone-number-input';
+import imageCompression from 'browser-image-compression';
 
 // Custom styles for react-select to match the existing design
 const selectStyles = {
@@ -282,6 +283,49 @@ const FFUserDetail: React.FC = () => {
     return formattedNumber.replace(/\s/g, '');
   };
 
+  // Helper function to validate image format
+  const validateImageFormat = (file: File): boolean => {
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+    const allowedExtensions = ['.png', '.jpeg', '.jpg', '.webp'];
+    
+    // Check MIME type
+    if (!allowedTypes.includes(file.type)) {
+      return false;
+    }
+    
+    // Check file extension
+    const fileName = file.name.toLowerCase();
+    const hasValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
+    
+    return hasValidExtension;
+  };
+
+  // Helper function to validate image size (max 10MB)
+  const validateImageSize = (file: File): boolean => {
+    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+    return file.size <= maxSize;
+  };
+
+  // Helper function to compress image
+  const compressImage = async (file: File): Promise<File> => {
+    const options = {
+      maxSizeMB: 2, // Compress to max 2MB
+      maxWidthOrHeight: 1024, // Max width/height of 1024px
+      useWebWorker: true,
+      fileType: file.type
+    };
+
+    try {
+      console.log('Original image size:', (file.size / 1024 / 1024).toFixed(2), 'MB');
+      const compressedFile = await imageCompression(file, options);
+      console.log('Compressed image size:', (compressedFile.size / 1024 / 1024).toFixed(2), 'MB');
+      return compressedFile;
+    } catch (error) {
+      console.error('Image compression failed:', error);
+      return file; // Return original file if compression fails
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="text-center py-12">
@@ -496,29 +540,40 @@ const FFUserDetail: React.FC = () => {
       setAdditionalEmails(prev => prev.filter((_, i) => i !== index));
     };
 
-    const handleProfilePictureChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleProfilePictureChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
       if (file) {
-        // Validate file type
-        if (!file.type.startsWith('image/')) {
-          toast.error('Please select a valid image file');
+        // Validate image format
+        if (!validateImageFormat(file)) {
+          toast.error('Please upload only PNG, JPEG, JPG, or WebP image formats.');
+          event.target.value = ''; // Clear the input
           return;
         }
         
-        // Validate file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-          toast.error('Image size should be less than 5MB');
+        // Validate image size
+        if (!validateImageSize(file)) {
+          toast.error('Image size should be less than 10MB.');
+          event.target.value = ''; // Clear the input
           return;
         }
 
-        setSelectedProfilePicture(file);
-        
-        // Create preview
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          setProfilePicturePreview(e.target?.result as string);
-        };
-        reader.readAsDataURL(file);
+        try {
+          // Compress the image
+          const compressedFile = await compressImage(file);
+          
+          setSelectedProfilePicture(compressedFile);
+          
+          // Create preview from compressed file
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            setProfilePicturePreview(e.target?.result as string);
+          };
+          reader.readAsDataURL(compressedFile);
+        } catch (error) {
+          console.error('Error processing image:', error);
+          toast.error('Error processing image. Please try again.');
+          event.target.value = ''; // Clear the input
+        }
       }
     };
 
@@ -894,11 +949,9 @@ const FFUserDetail: React.FC = () => {
                 
                 <div className="text-center">
                   <div className="text-lg font-semibold text-gray-800">
-                    {profilePicturePreview ? (
-                      <span className="text-blue-600">New image selected</span>
-                    ) : (
+                    
                       <span className="text-gray-700">{profile?.fullName || 'User Name'}</span>
-                    )}
+                    
                   </div>
                 </div>
                 
@@ -916,7 +969,7 @@ const FFUserDetail: React.FC = () => {
                   <input
                         id="profile-picture-input"
                         type="file"
-                        accept="image/*"
+                        accept=".png,.jpeg,.jpg,.webp"
                         onChange={handleProfilePictureChange}
                         className="hidden"
                   />
@@ -936,7 +989,7 @@ const FFUserDetail: React.FC = () => {
                     )}
                     
                     <div className="text-xs text-gray-500 text-center">
-                      Recommended: Square image, max 5MB
+                      Recommended: Square image, PNG, JPEG, JPG, WebP - max 10MB
                     </div>
                   </div>
                 )}

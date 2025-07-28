@@ -9,9 +9,9 @@ import {
 } from '../data/mockData';
 
 // Configure axios defaults
+console.log(process.env.REACT_APP_API_URL);
 const api = axios.create({
-  // baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3000/api/v1',
-  baseURL: 'https://api.twintik.com/api/v1',
+   baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3000/api/v1',
   // baseURL: 'http://localhost:3000/api/v1',
   timeout: 10000,
   headers: {
@@ -19,7 +19,6 @@ const api = axios.create({
   },
 });
 
-console.log(api.defaults.baseURL);
 
 // Request interceptor to add auth token
 api.interceptors.request.use(

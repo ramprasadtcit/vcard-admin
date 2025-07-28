@@ -10,6 +10,7 @@ import {
 import apiService from '../../services/api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { normalizePhoneData, getSafeCountryCode } from '../../utils/phoneUtils';
 
 interface Invitation {
   _id: string;
@@ -68,21 +69,25 @@ const FFUserEdit: React.FC = () => {
         // For completed invitations, fetch user profile directly
         if (userId) {
           const userRes = await apiService.get(`/profile/admin/${userId}`);
-          setUserProfile(userRes.data);
+          
+          // Normalize phone data to fix country code issues
+          const normalizedUserData = normalizePhoneData(userRes.data);
+          
+          setUserProfile(normalizedUserData);
           setFormData({
-            fullName: userRes.data.fullName,
-            username: userRes.data.username,
-            email: userRes.data.email,
-            jobTitle: userRes.data.jobTitle || '',
-            company: userRes.data.company || '',
-            website: userRes.data.website || '',
-            bio: userRes.data.bio || '',
-            profilePicture: userRes.data.profilePicture || '',
-            additionalEmails: userRes.data.additionalEmails || [],
-            phoneNumber: userRes.data.phoneNumber?.value || '',
-            phoneCountry: userRes.data.phoneNumber?.country || '',
-            address: userRes.data.address || {},
-            socialLinks: userRes.data.socialLinks || [],
+            fullName: normalizedUserData.fullName,
+            username: normalizedUserData.username,
+            email: normalizedUserData.email,
+            jobTitle: normalizedUserData.jobTitle || '',
+            company: normalizedUserData.company || '',
+            website: normalizedUserData.website || '',
+            bio: normalizedUserData.bio || '',
+            profilePicture: normalizedUserData.profilePicture || '',
+            additionalEmails: normalizedUserData.additionalEmails || [],
+            phoneNumber: normalizedUserData.phoneNumber?.value || '',
+            phoneCountry: getSafeCountryCode(normalizedUserData.phoneNumber?.country || ''),
+            address: normalizedUserData.address || {},
+            socialLinks: normalizedUserData.socialLinks || [],
           });
           setAuthError('');
         }

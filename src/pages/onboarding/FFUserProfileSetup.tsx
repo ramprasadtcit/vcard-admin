@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import * as Yup from 'yup';
 import { parsePhoneNumber, getCountryCallingCode } from 'react-phone-number-input';
 import PhoneInput from 'react-phone-number-input';
+import { normalizePhoneData, getSafeCountryCode } from '../../utils/phoneUtils';
+import SafePhoneInput from '../../components/SafePhoneInput';
 import { isValidPhoneNumber } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import Select from 'react-select';
@@ -287,16 +289,19 @@ const FFUserProfileSetup: React.FC = () => {
         console.log('Invitation validation response:', response);
 
         if (response && response.invitation) {
+          // Normalize phone data in invitation response
+          const normalizedInvitation = normalizePhoneData(response.invitation);
+          
           // Token is valid, set invitation data
           setTokenValid(true);
           setTokenExpired(false);
-          setInvitationId(response.invitation._id);
+          setInvitationId(normalizedInvitation._id);
 
           // Pre-fill form with invitation data
           setFormData(prev => ({
             ...prev,
-            fullName: response.invitation.fullName || '',
-            email: response.invitation.emailAddress || '',
+            fullName: normalizedInvitation.fullName || '',
+            email: normalizedInvitation.emailAddress || '',
           }));
 
           // Check if user is already registered by checking if invitation has userId
@@ -1196,7 +1201,7 @@ const FFUserProfileSetup: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Primary Phone Number <span style={{ color: 'red' }}>*</span>
                   </label>
-                  <PhoneInput
+                  <SafePhoneInput
                     international
                     countryCallingCodeEditable={false}
                     defaultCountry="AE"
@@ -1224,7 +1229,7 @@ const FFUserProfileSetup: React.FC = () => {
                     {formData.additionalPhones.map((phone, index) => (
                       <div key={index} className="flex items-center space-x-2">
                         <div className="flex-1">
-                          <PhoneInput
+                          <SafePhoneInput
                             international
                             countryCallingCodeEditable={false}
                             defaultCountry="AE"

@@ -7,13 +7,14 @@ import {
   mockCardTemplates, 
   mockSubscriptions 
 } from '../data/mockData';
+import { normalizePhoneData } from '../utils/phoneUtils';
 
 // Configure axios defaults
 console.info('Environment API URL:', process.env.REACT_APP_API_URL);
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3000/api/v1',
+  // baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3000/api/v1',
   // baseURL: 'https://api.twintik.com/api/v1',
-  // baseURL: 'http://localhost:3000/api/v1',
+  baseURL: 'http://localhost:3000/api/v1',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -35,9 +36,15 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle auth errors
+// Response interceptor to handle auth errors and normalize phone data
 api.interceptors.response.use(
-  (response: any) => response,
+  (response: any) => {
+    // Normalize phone data in responses to fix country code issues
+    if (response.data && typeof response.data === 'object') {
+      response.data = normalizePhoneData(response.data);
+    }
+    return response;
+  },
   (error: any) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('authToken');

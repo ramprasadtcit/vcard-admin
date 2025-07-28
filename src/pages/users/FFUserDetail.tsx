@@ -22,6 +22,8 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import UserAvatar from '../../components/UserAvatar';
 import PhoneInput from 'react-phone-number-input';
+import { normalizePhoneData, getSafeCountryCode } from '../../utils/phoneUtils';
+import SafePhoneInput from '../../components/SafePhoneInput';
 import { parsePhoneNumber, getCountryCallingCode } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import Select from 'react-select';
@@ -176,7 +178,11 @@ const FFUserDetail: React.FC = () => {
       
       try {
           const userRes = await apiService.get(`/profile/admin/${userId}`);
-          setUserProfile(userRes.data);
+          
+          // Normalize phone data to fix country code issues
+          const normalizedUserData = normalizePhoneData(userRes.data);
+          
+          setUserProfile(normalizedUserData);
       } catch (error: any) {
         const errorMsg = error?.response?.data?.error?.message || error?.response?.data?.message || 'Failed to load user profile';
           setAuthError(errorMsg);
@@ -1258,7 +1264,7 @@ const FFUserDetail: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Primary Phone <span className="text-red-500">*</span></label>
                   {editMode ? (
                     <>
-                      <PhoneInput
+                      <SafePhoneInput
                         international
                         countryCallingCodeEditable={false}
                         defaultCountry="AE"
@@ -1283,7 +1289,7 @@ const FFUserDetail: React.FC = () => {
                       )}
                     </>
                   ) : (
-                    <PhoneInput
+                    <SafePhoneInput
                       international
                       countryCallingCodeEditable={false}
                       defaultCountry="AE"
@@ -1301,13 +1307,13 @@ const FFUserDetail: React.FC = () => {
                       {additionalPhones.map((phone, index) => (
                         <div key={index} className="flex items-center space-x-2">
                           <div className="flex-1">
-                            <PhoneInput
+                            <SafePhoneInput
                               international
                               countryCallingCodeEditable={false}
-                              defaultCountry={(phone.country && phone.country.length === 2 ? phone.country : 'AE') as 'AE'}
+                              defaultCountry={phone.country || 'AE'}
                               value={convertToE164(phone.value)}
                               onChange={value => {
-                                const country = phone.country && phone.country.length === 2 ? phone.country : 'AE';
+                                const country = getSafeCountryCode(phone.country || 'AE');
                                 handleAdditionalPhoneChange(index, value || '', country);
                                 // Clear error when user starts typing
                                 if (validationErrors[`additionalPhone${index}`]) {
@@ -1354,7 +1360,7 @@ const FFUserDetail: React.FC = () => {
                       {(Array.isArray(profile?.phoneNumbers) && profile.phoneNumbers.length > 0
                         ? profile.phoneNumbers
                         : []).map((p: { value: string }, idx: number) => (
-                          <PhoneInput
+                          <SafePhoneInput
                             key={idx}
                             international
                             countryCallingCodeEditable={false}

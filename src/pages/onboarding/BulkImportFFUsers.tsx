@@ -103,8 +103,9 @@ interface FullUserValidationResult {
       type: string;
       isMobile: boolean;
     };
-    reason?: 'VALID' | 'DUPLICATE_FIELDS' | 'MISSING_FIELDS' | 'INVALID_PHONE' | 'INVALID_ADDITIONAL_PHONES';
+    reason?: 'VALID' | 'DUPLICATE_FIELDS' | 'MISSING_FIELDS' | 'INVALID_PHONE' | 'INVALID_ADDITIONAL_PHONES' | 'INVALID_PHONE_AND_ADDITIONAL';
     existingUserEmail?: string;
+    existingInvitationEmail?: string;
     existingUsername?: string;
     existingPhone?: string;
   }>;
@@ -1139,8 +1140,14 @@ Sarah Wilson,sarah.wilson@example.com,sarahwilson,+61 2 9876 5432,Data Scientist
                         {fullUserValidationResult.results.some(r => r.reason === 'INVALID_ADDITIONAL_PHONES') && (
                           <span className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded">📞 Invalid additional phones</span>
                         )}
+                        {fullUserValidationResult.results.some(r => r.reason === 'INVALID_PHONE_AND_ADDITIONAL') && (
+                          <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded">📱 Invalid phone & additional phones</span>
+                        )}
                         {fullUserValidationResult.results.some(r => r.duplicateFields?.email) && (
                           <span className="bg-red-100 text-red-800 px-2 py-1 rounded">📧 Email conflicts</span>
+                        )}
+                        {fullUserValidationResult.results.some(r => r.existingInvitationEmail) && (
+                          <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded">📨 Invitation conflicts</span>
                         )}
                         {fullUserValidationResult.results.some(r => r.duplicateFields?.username) && (
                           <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded">👤 Username conflicts</span>
@@ -1169,7 +1176,11 @@ Sarah Wilson,sarah.wilson@example.com,sarahwilson,+61 2 9876 5432,Data Scientist
                               const isMissingFields = result.reason === 'MISSING_FIELDS';
                               const isInvalidPhone = result.reason === 'INVALID_PHONE';
                               const isInvalidAdditionalPhones = result.reason === 'INVALID_ADDITIONAL_PHONES';
-                              const bgColor = isMissingFields ? 'bg-orange-50' : isInvalidPhone ? 'bg-purple-50' : isInvalidAdditionalPhones ? 'bg-indigo-50' : 'bg-red-50';
+                              const isInvalidPhoneAndAdditional = result.reason === 'INVALID_PHONE_AND_ADDITIONAL';
+                              const bgColor = isMissingFields ? 'bg-orange-50' : 
+                                            isInvalidPhone ? 'bg-purple-50' : 
+                                            isInvalidAdditionalPhones ? 'bg-indigo-50' : 
+                                            isInvalidPhoneAndAdditional ? 'bg-purple-50' : 'bg-red-50';
                               
                               return (
                                 <tr key={index} className={`border-b border-gray-200 ${bgColor}`}>
@@ -1194,7 +1205,11 @@ Sarah Wilson,sarah.wilson@example.com,sarahwilson,+61 2 9876 5432,Data Scientist
                                       )}
                                     </div>
                                     {result.duplicateFields?.email && (
-                                      <div className="text-xs text-red-600 mt-1">Already exists</div>
+                                      <div className="text-xs text-red-600 mt-1">
+                                        {result.existingUserEmail ? 'Exists in users table' : 
+                                         result.existingInvitationEmail ? 'Exists in invitations table' : 
+                                         'Already exists'}
+                                      </div>
                                     )}
                                     {result.missingFields?.includes('email') && (
                                       <div className="text-xs text-orange-600 mt-1">Required field missing</div>
@@ -1283,6 +1298,13 @@ Sarah Wilson,sarah.wilson@example.com,sarahwilson,+61 2 9876 5432,Data Scientist
                                       {result.reason === 'INVALID_ADDITIONAL_PHONES' && (
                                         <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
                                           📞 Invalid Additional Phones
+                                        </span>
+                                      )}
+                                      
+                                      {/* Invalid phone and additional phones badge */}
+                                      {result.reason === 'INVALID_PHONE_AND_ADDITIONAL' && (
+                                        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                                          📱 Invalid Phone & Additional Phones
                                         </span>
                                       )}
                                       

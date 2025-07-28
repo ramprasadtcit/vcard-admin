@@ -192,17 +192,37 @@ const validationSchema = Yup.object().shape({
       return true;
     })
   ),
-  // Social links - no validation
+  // Social links validation
   socialLinks: Yup.object().shape({
-    linkedin: Yup.string().optional(),
-    x: Yup.string().optional(),
-    instagram: Yup.string().optional(),
+    linkedin: Yup.string()
+      .test('linkedin-url', 'LinkedIn URL must start with http:// or https://', function(value) {
+        if (!value || value.trim() === '') return true; // Allow empty
+        return /^https?:\/\/.+/.test(value);
+      })
+      .optional(),
+    x: Yup.string()
+      .test('x-url', 'X URL must start with http:// or https://', function(value) {
+        if (!value || value.trim() === '') return true; // Allow empty
+        return /^https?:\/\/.+/.test(value);
+      })
+      .optional(),
+    instagram: Yup.string()
+      .test('instagram-url', 'Instagram URL must start with http:// or https://', function(value) {
+        if (!value || value.trim() === '') return true; // Allow empty
+        return /^https?:\/\/.+/.test(value);
+      })
+      .optional(),
   }),
-  // Custom social links - no validation
+  // Custom social links validation
   customSocialLinks: Yup.array().of(
     Yup.object().shape({
       platform: Yup.string().optional(),
-      url: Yup.string().optional(),
+      url: Yup.string()
+        .test('custom-url', 'URL must start with http:// or https://', function(value) {
+          if (!value || value.trim() === '') return true; // Allow empty
+          return /^https?:\/\/.+/.test(value);
+        })
+        .optional(),
     })
   ),
 });

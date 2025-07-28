@@ -22,6 +22,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import UserAvatar from '../../components/UserAvatar';
 import PhoneInput from 'react-phone-number-input';
+import { parsePhoneNumber, getCountryCallingCode } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import Select from 'react-select';
 import { countries } from '../../data';
@@ -264,19 +265,20 @@ const FFUserDetail: React.FC = () => {
 
   // Function to generate initials from fullName
   const getInitials = (fullName: string | undefined) => {
-    if (!fullName || fullName.trim() === '') return '??';
-    
-    const names = fullName.trim().split(' ');
-    if (names.length === 1) {
-      // If only one name, use first and last character
-      const name = names[0];
-      return name.length >= 2 ? `${name[0]}${name[name.length - 1]}`.toUpperCase() : name.toUpperCase();
-    }
-    
-    // Use first letter of first name and first letter of last name
-    const firstInitial = names[0][0] || '';
-    const lastInitial = names[names.length - 1][0] || '';
-    return `${firstInitial}${lastInitial}`.toUpperCase();
+    if (!fullName) return '';
+    return fullName
+      .split(' ')
+      .map(name => name.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  // Helper function to convert formatted phone number back to E.164 for PhoneInput
+  const convertToE164 = (formattedNumber: string): string => {
+    if (!formattedNumber) return '';
+    // Remove spaces to convert "+971 544123123" back to "+971544123123"
+    return formattedNumber.replace(/\s/g, '');
   };
 
   if (isLoading) {
@@ -399,16 +401,64 @@ const FFUserDetail: React.FC = () => {
     };
 
     const handlePrimaryPhoneChange = (value: string) => {
+      if (!value) {
+        setEditedProfile(prev => prev ? {
+          ...prev,
+          phoneNumber: { value: '', country: prev.phoneNumber?.country || '' }
+        } : prev);
+        return;
+      }
+
+      // Format phone number using the same method as FFUserSetup
+      const phoneData = parsePhoneNumber(value);
+      if (!phoneData) {
+        setEditedProfile(prev => prev ? {
+          ...prev,
+          phoneNumber: { value: value, country: prev.phoneNumber?.country || '' }
+        } : prev);
+        return;
+      }
+
+      const country = phoneData.country || 'AE';
+      const callingCode = getCountryCallingCode(country as any);
+      const nationalNumber = phoneData.nationalNumber || '';
+      const formattedValue = `+${callingCode} ${nationalNumber}`;
+
       setEditedProfile(prev => prev ? {
         ...prev,
-        phoneNumber: { value, country: prev.phoneNumber?.country || '' }
+        phoneNumber: { value: formattedValue, country: country }
       } : prev);
     };
 
     const handleAdditionalPhoneChange = (index: number, value: string, country: string) => {
+      if (!value) {
+        setAdditionalPhones(prev => {
+          const updated = [...prev];
+          updated[index] = { value: '', country: country || '' };
+          return updated;
+        });
+        return;
+      }
+
+      // Format phone number using the same method as FFUserSetup
+      const phoneData = parsePhoneNumber(value);
+      if (!phoneData) {
+        setAdditionalPhones(prev => {
+          const updated = [...prev];
+          updated[index] = { value: value, country: country || '' };
+          return updated;
+        });
+        return;
+      }
+
+      const phoneCountry = phoneData.country || country || 'AE';
+      const callingCode = getCountryCallingCode(phoneCountry as any);
+      const nationalNumber = phoneData.nationalNumber || '';
+      const formattedValue = `+${callingCode} ${nationalNumber}`;
+
       setAdditionalPhones(prev => {
         const updated = [...prev];
-        updated[index] = { value, country };
+        updated[index] = { value: formattedValue, country: phoneCountry };
         return updated;
       });
     };
@@ -652,6 +702,9 @@ const FFUserDetail: React.FC = () => {
       fieldsToRemove.forEach(field => {
         delete updatedData[field];
       });
+
+      console.log('Updated data:', updatedData);
+      debugger
       
       try {
         const response = await api.put(`/profile/admin/${userId}`, updatedData, {
@@ -1123,7 +1176,7 @@ const FFUserDetail: React.FC = () => {
                         international
                         countryCallingCodeEditable={false}
                         defaultCountry="AE"
-                        value={editedProfile?.phoneNumber?.value || ''}
+                        value={convertToE164(editedProfile?.phoneNumber?.value || '')}
                         onChange={(value) => {
                           handlePrimaryPhoneChange(value);
                           // Clear error when user starts typing
@@ -1148,7 +1201,7 @@ const FFUserDetail: React.FC = () => {
                       international
                       countryCallingCodeEditable={false}
                       defaultCountry="AE"
-                      value={profile?.phoneNumber?.value || ''}
+                      value={convertToE164(profile?.phoneNumber?.value || '')}
                       onChange={() => {}}
                       disabled
                       className="w-full px-3 py-2 border rounded-md bg-gray-50 border-gray-200"
@@ -1165,8 +1218,8 @@ const FFUserDetail: React.FC = () => {
                             <PhoneInput
                               international
                               countryCallingCodeEditable={false}
-                              defaultCountry={(phone.country && phone.country.length === 2 ? phone.country : 'AE') as any}
-                              value={phone.value}
+                              defaultCountry={(phone.country && phone.country.length === 2 ? phone.country : 'AE') as 'AE'}
+                              value={convertToE164(phone.value)}
                               onChange={value => {
                                 const country = phone.country && phone.country.length === 2 ? phone.country : 'AE';
                                 handleAdditionalPhoneChange(index, value || '', country);
@@ -1218,7 +1271,7 @@ const FFUserDetail: React.FC = () => {
                             international
                             countryCallingCodeEditable={false}
                             defaultCountry="AE"
-                            value={p.value}
+                            value={convertToE164(p.value)}
                             onChange={() => {}}
                             disabled
                             className="w-full px-3 py-2 border rounded-md bg-gray-50 border-gray-200"

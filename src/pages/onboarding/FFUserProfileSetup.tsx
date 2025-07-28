@@ -3,16 +3,16 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { apiService } from '../../services/api';
 import * as Yup from 'yup';
 import PhoneInput from 'react-phone-number-input';
-import { isValidPhoneNumber } from 'react-phone-number-input';
+import { isValidPhoneNumber, parsePhoneNumber, getCountryCallingCode } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import Select from 'react-select';
-import { 
-  User, 
-  MapPin, 
-  Globe, 
-  Linkedin, 
-  X as Twitter, 
-  Instagram, 
+import {
+  User,
+  MapPin,
+  Globe,
+  Linkedin,
+  X as Twitter,
+  Instagram,
   Camera,
   Save,
   ArrowLeft,
@@ -95,13 +95,13 @@ interface ProfileFormData {
   company: string;
   website: string;
   profileUrl: string;
-  
+
   // Contact Details
   email: string;
   additionalEmails: string[];
   phone: string;
   additionalPhones: string[];
-  
+
   // Address
   address: {
     street: string;
@@ -110,7 +110,7 @@ interface ProfileFormData {
     zipCode: string;
     country: string;
   };
-  
+
   // Social Links
   socialLinks: {
     linkedin: string;
@@ -118,16 +118,16 @@ interface ProfileFormData {
     instagram: string;
     [key: string]: string;
   };
-  
+
   // Custom Social Links
   customSocialLinks: Array<{
     platform: string;
     url: string;
   }>;
-  
+
   // Profile Picture
   profilePicture: string;
-  
+
   // Bio
   bio: string;
 }
@@ -174,17 +174,17 @@ const validationSchema = Yup.object().shape({
   additionalPhones: Yup.array().of(
     Yup.string().test('phone-format', 'Please enter a valid phone number', function(value) {
       console.log('Validating additional phone:', value); // Debug log
-      
+
       // If the field is empty, it's valid (optional field)
       if (!value || value.trim() === '') {
         console.log('Empty phone field - valid'); // Debug log
         return true;
       }
-      
+
       // If there's a value, it must be a valid phone number
       const isValid = isValidPhoneNumber(value);
       console.log('Phone validation result:', isValid); // Debug log
-      
+
       if (!isValid) {
         console.log('Invalid phone number detected:', value); // Debug log
         return this.createError({ message: 'Please enter a valid phone number' });
@@ -210,7 +210,7 @@ const validationSchema = Yup.object().shape({
 const FFUserProfileSetup: React.FC = () => {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
-  
+
   const [loading, setLoading] = useState(true);
   const [tokenValid, setTokenValid] = useState(false);
   const [tokenExpired, setTokenExpired] = useState(false);
@@ -219,7 +219,7 @@ const FFUserProfileSetup: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
   const [invitationId, setInvitationId] = useState<string | null>(null);
-  
+
   const [formData, setFormData] = useState<ProfileFormData>({
     fullName: '',
     jobTitle: '',
@@ -262,20 +262,20 @@ const FFUserProfileSetup: React.FC = () => {
         // Call the new backend endpoint to validate invitation by token
         const response: any = await apiService.get(`/invitation/token/${token}`);
         console.log('Invitation validation response:', response);
-        
+
         if (response && response.invitation) {
           // Token is valid, set invitation data
           setTokenValid(true);
           setTokenExpired(false);
           setInvitationId(response.invitation._id);
-          
+
           // Pre-fill form with invitation data
           setFormData(prev => ({
             ...prev,
             fullName: response.invitation.fullName || '',
             email: response.invitation.emailAddress || '',
           }));
-          
+
           // Check if user is already registered by checking if invitation has userId
           if (response.invitation.userId) {
             // User is already registered, show appropriate message
@@ -286,7 +286,7 @@ const FFUserProfileSetup: React.FC = () => {
         }
       } catch (error: any) {
         console.error('Error validating invitation token:', error);
-        
+
         // Handle different error cases
         if (error.response?.status === 410) {
           // Invitation expired
@@ -436,7 +436,42 @@ const FFUserProfileSetup: React.FC = () => {
   const handleAdditionalPhoneChange = (index: number, value: string) => {
     setFormData(prev => ({
       ...prev,
-      additionalPhones: prev.additionalPhones.map((phone, i) => 
+      additionalPhones: prev.additionalPhones.map((phone, i) =>
+        i === index ? value : phone
+      )
+    }));
+  };
+
+  // Handler for primary phone input with formatting
+  const handlePrimaryPhoneChange = (value: string | undefined) => {
+    if (!value) {
+      setFormData(prev => ({
+        ...prev,
+        phone: ''
+      }));
+      return;
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      phone: value
+    }));
+  };
+
+  const handleAdditionalPhoneChangeWithFormat = (index: number, value: string | undefined) => {
+    if (!value) {
+      setFormData(prev => ({
+        ...prev,
+        additionalPhones: prev.additionalPhones.map((phone, i) =>
+          i === index ? '' : phone
+        )
+      }));
+      return;
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      additionalPhones: prev.additionalPhones.map((phone, i) =>
         i === index ? value : phone
       )
     }));
@@ -456,41 +491,15 @@ const FFUserProfileSetup: React.FC = () => {
     }));
   };
 
-  // Helper function to extract country code from phone number
-  const extractCountryFromPhone = (phoneNumber: string): string => {
-    if (!phoneNumber) return 'AE';
-    
-    // Extract country code from phone number
-    const countryCodeMatch = phoneNumber.match(/^\+(\d+)/);
-    if (countryCodeMatch) {
-      const code = countryCodeMatch[1];
-      // Map common country codes
-      const countryMap: { [key: string]: string } = {
-        '971': 'AE', // UAE
-        '91': 'IN',  // India
-        '1': 'US',   // USA
-        '44': 'GB',  // UK
-        '33': 'FR',  // France
-        '49': 'DE',  // Germany
-        '61': 'AU',  // Australia
-        '86': 'CN',  // China
-        '81': 'JP',  // Japan
-        '82': 'KR',  // South Korea
-      };
-      return countryMap[code] || 'AE';
-    }
-    return 'AE';
-  };
-
   // Helper function to convert profile picture to base64
   const convertImageToBase64 = (imageUrl: string): string => {
     if (!imageUrl) return '';
-    
+
     // If it's already a base64 string, return as is
     if (imageUrl.startsWith('data:image')) {
       return imageUrl;
     }
-    
+
     // For now, return empty string for external URLs
     // In a real implementation, you'd fetch the image and convert to base64
     return '';
@@ -498,12 +507,12 @@ const FFUserProfileSetup: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Clear previous errors
     setFormErrors({});
-    
+
     console.log('Form data being validated:', formData); // Debug log
-    
+
     // Manual validation for additional phones to debug
     formData.additionalPhones.forEach((phone, index) => {
       console.log(`Additional phone ${index}:`, phone);
@@ -515,7 +524,7 @@ const FFUserProfileSetup: React.FC = () => {
         }
       }
     });
-    
+
     // Validate form
     try {
       await validationSchema.validate(formData, { abortEarly: false });
@@ -548,7 +557,7 @@ const FFUserProfileSetup: React.FC = () => {
         console.log('Original validation error paths:', err.inner.map((e: any) => e.path)); // Debug log
         console.log('All validation errors:', err.inner); // Debug log
         setFormErrors(errors);
-        
+
         // Scroll to first error
         const firstErrorField = document.querySelector('[data-error="true"]');
         if (firstErrorField) {
@@ -557,8 +566,10 @@ const FFUserProfileSetup: React.FC = () => {
       }
       return;
     }
-    
+
     setSaving(true);
+
+    console.log('Form data being submitted:', formData);
     try {
       // Construct API payload in the required format
       const apiPayload = {
@@ -578,14 +589,28 @@ const FFUserProfileSetup: React.FC = () => {
         },
         additionalEmails: formData.additionalEmails.filter(email => email.trim() !== '').join(',') || '',
         phoneNumber: {
-          value: formData.phone,
-          country: extractCountryFromPhone(formData.phone)
+          value: (() => {
+            const phoneData = parsePhoneNumber(formData.phone);
+            if (!phoneData) return formData.phone;
+            const country = phoneData.country || 'AE';
+            const callingCode = getCountryCallingCode(country);
+            const nationalNumber = phoneData.nationalNumber || '';
+            return `+${callingCode} ${nationalNumber}`;
+          })(),
+          country: parsePhoneNumber(formData.phone)?.country || 'AE'
         },
         phoneNumbers: formData.additionalPhones
           .filter(phone => phone.trim() !== '')
           .map(phone => ({
-            value: phone,
-            country: extractCountryFromPhone(phone)
+            value: (() => {
+              const phoneData = parsePhoneNumber(phone);
+              if (!phoneData) return phone;
+              const country = phoneData.country || 'AE';
+              const callingCode = getCountryCallingCode(country);
+              const nationalNumber = phoneData.nationalNumber || '';
+              return `+${callingCode} ${nationalNumber}`;
+            })(),
+            country: parsePhoneNumber(phone)?.country || 'AE'
           })),
         socialLinks: [
           // LinkedIn
@@ -620,15 +645,16 @@ const FFUserProfileSetup: React.FC = () => {
       };
 
       console.log('API Payload:', apiPayload);
+      debugger
 
       // Call registerFromWeb API
       try {
         const registerRes = await apiService.post('/profile/registerFromWeb', apiPayload);
         console.log('Registration successful:', registerRes);
-        
+
         // Redirect to confirmation page
-        navigate(`/onboard/${token}/confirmation`, { 
-          state: { username: formData.profileUrl.replace('twintik.com/', '') } 
+        navigate(`/onboard/${token}/confirmation`, {
+          state: { username: formData.profileUrl.replace('twintik.com/', '') }
         });
       } catch (error: any) {
         console.error('Registration failed:', error);
@@ -746,9 +772,9 @@ const FFUserProfileSetup: React.FC = () => {
               <div className="flex items-center space-x-6">
                 <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
                   {formData.profilePicture ? (
-                    <img 
-                      src={formData.profilePicture} 
-                      alt="Profile" 
+                    <img
+                      src={formData.profilePicture}
+                      alt="Profile"
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -833,7 +859,7 @@ const FFUserProfileSetup: React.FC = () => {
                     Company <span style={{ color: 'red' }}>*</span>
                   </label>
                   <input
-                    type="text" 
+                    type="text"
                     value={formData.company}
                     onChange={(e) => handleInputChange('company', e.target.value)}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
@@ -873,7 +899,7 @@ const FFUserProfileSetup: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Profile URL <span style={{ color: 'red' }}>*</span>
                   </label>
-                  
+
                   <div className="flex items-stretch">
   <span
     className={`inline-flex items-center px-3 text-sm border border-r-0 rounded-l-md bg-gray-50 text-gray-500 ${
@@ -920,7 +946,7 @@ const FFUserProfileSetup: React.FC = () => {
   </button>
 </div>
 
-                  
+
                   {/* Show check result */}
                   {usernameAvailable === true && (
                     <p className="text-green-600 text-xs mt-1 flex items-center">
@@ -934,7 +960,7 @@ const FFUserProfileSetup: React.FC = () => {
                       {usernameCheckError}
                     </p>
                   )}
-                  
+
                   {/* Suggestions */}
                   {usernameSuggestions.length > 0 && (
                     <div className="mt-2">
@@ -959,9 +985,9 @@ const FFUserProfileSetup: React.FC = () => {
                       </div>
                     </div>
                   )}
-                  
-            
-                  
+
+
+
                   {formErrors.profileUrl && (
                     <p className="text-red-600 text-xs mt-1 flex items-center">
                       <AlertCircle className="w-3 h-3 mr-1" />
@@ -999,7 +1025,7 @@ const FFUserProfileSetup: React.FC = () => {
                 <Mail className="w-5 h-5 mr-2 text-purple-600" />
                 Contact Information
               </h3>
-              
+
               {/* Email Section */}
               <div className="space-y-4 mb-6">
                 <div>
@@ -1018,7 +1044,7 @@ const FFUserProfileSetup: React.FC = () => {
                     This email address was provided in your invitation and cannot be changed
                   </p>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Additional Emails
@@ -1081,7 +1107,7 @@ const FFUserProfileSetup: React.FC = () => {
                     countryCallingCodeEditable={false}
                     defaultCountry="AE"
                     value={formData.phone}
-                    onChange={(value) => handleInputChange('phone', value || '')}
+                    onChange={(value) => handlePrimaryPhoneChange(value)}
                     placeholder="Enter phone number"
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
                       formErrors.phone ? 'border-red-500' : 'border-gray-300'
@@ -1095,7 +1121,7 @@ const FFUserProfileSetup: React.FC = () => {
                     </p>
                   )}
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Additional Phone Numbers
@@ -1109,7 +1135,7 @@ const FFUserProfileSetup: React.FC = () => {
                             countryCallingCodeEditable={false}
                             defaultCountry="AE"
                             value={phone}
-                            onChange={(value) => handleAdditionalPhoneChange(index, value || '')}
+                            onChange={(value) => handleAdditionalPhoneChangeWithFormat(index, value)}
                             placeholder="Enter phone number"
                             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
                               formErrors[`additionalPhones.${index}`] ? 'border-red-500' : 'border-gray-300'

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { apiService } from '../../services/api';
 import * as Yup from 'yup';
+import { parsePhoneNumber, getCountryCallingCode } from 'react-phone-number-input';
 import PhoneInput from 'react-phone-number-input';
-import { isValidPhoneNumber, parsePhoneNumber, getCountryCallingCode } from 'react-phone-number-input';
+import { isValidPhoneNumber } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import Select from 'react-select';
 import {
@@ -26,6 +26,8 @@ import { FFUser } from '../../types/user';
 import { ComingSoonOverlay } from '../../components';
 import { countries } from '../../data';
 import twintikLogo from '../../assets/twintik-logo.svg';
+import { apiService } from '../../services/api';
+import imageCompression from 'browser-image-compression';
 
 // Custom styles for react-select to match the existing design
 const selectStyles = {
@@ -517,7 +519,7 @@ const FFUserProfileSetup: React.FC = () => {
   };
 
   // Helper function to convert profile picture to base64
-  const convertImageToBase64 = (imageUrl: string): string => {
+  const convertImageToBase64 = async (imageUrl: string): Promise<string> => {
     if (!imageUrl) return '';
 
     // If it's already a base64 string, return as is
@@ -528,6 +530,49 @@ const FFUserProfileSetup: React.FC = () => {
     // For now, return empty string for external URLs
     // In a real implementation, you'd fetch the image and convert to base64
     return '';
+  };
+
+  // Helper function to validate image format
+  const validateImageFormat = (file: File): boolean => {
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+    const allowedExtensions = ['.png', '.jpeg', '.jpg', '.webp'];
+    
+    // Check MIME type
+    if (!allowedTypes.includes(file.type)) {
+      return false;
+    }
+    
+    // Check file extension
+    const fileName = file.name.toLowerCase();
+    const hasValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
+    
+    return hasValidExtension;
+  };
+
+  // Helper function to validate image size (max 10MB)
+  const validateImageSize = (file: File): boolean => {
+    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+    return file.size <= maxSize;
+  };
+
+  // Helper function to compress image
+  const compressImage = async (file: File): Promise<File> => {
+    const options = {
+      maxSizeMB: 2, // Compress to max 2MB
+      maxWidthOrHeight: 1024, // Max width/height of 1024px
+      useWebWorker: true,
+      fileType: file.type
+    };
+
+    try {
+      console.log('Original image size:', (file.size / 1024 / 1024).toFixed(2), 'MB');
+      const compressedFile = await imageCompression(file, options);
+      console.log('Compressed image size:', (compressedFile.size / 1024 / 1024).toFixed(2), 'MB');
+      return compressedFile;
+    } catch (error) {
+      console.error('Image compression failed:', error);
+      return file; // Return original file if compression fails
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -665,7 +710,7 @@ const FFUserProfileSetup: React.FC = () => {
               isPublic: true
             }))
         ],
-        profilePicture: convertImageToBase64(formData.profilePicture),
+        profilePicture: await convertImageToBase64(formData.profilePicture),
         invitationId: invitationId
       };
 
@@ -807,24 +852,48 @@ const FFUserProfileSetup: React.FC = () => {
                 <div>
                   <input
                     type="file"
-                    accept="image/*"
+                    accept=".png,.jpeg,.jpg,.webp"
                     className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                          setFormData(prev => ({
-                            ...prev,
-                            profilePicture: e.target?.result as string
-                          }));
-                        };
-                        reader.readAsDataURL(file);
+                        // Validate image format
+                        if (!validateImageFormat(file)) {
+                          alert('Please upload only PNG, JPEG, JPG, or WebP image formats.');
+                          e.target.value = ''; // Clear the input
+                          return;
+                        }
+                        
+                        // Validate image size
+                        if (!validateImageSize(file)) {
+                          alert('Image size should be less than 10MB.');
+                          e.target.value = ''; // Clear the input
+                          return;
+                        }
+                        
+                        try {
+                          // Compress the image
+                          const compressedFile = await compressImage(file);
+                          
+                          // Convert compressed file to base64
+                          const reader = new FileReader();
+                          reader.onload = (e) => {
+                            setFormData(prev => ({
+                              ...prev,
+                              profilePicture: e.target?.result as string
+                            }));
+                          };
+                          reader.readAsDataURL(compressedFile);
+                        } catch (error) {
+                          console.error('Error processing image:', error);
+                          alert('Error processing image. Please try again.');
+                          e.target.value = ''; // Clear the input
+                        }
                       }
                     }}
                   />
                   <p className="mt-1 text-xs text-gray-500">
-                    Upload a profile picture
+                    Upload a profile picture (PNG, JPEG, JPG, WebP - max 10MB)
                   </p>
                 </div>
               </div>

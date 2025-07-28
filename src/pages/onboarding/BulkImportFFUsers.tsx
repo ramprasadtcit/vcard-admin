@@ -984,12 +984,104 @@ Bob Johnson,bob.johnson@example.com,bobjohnson,+44-20-7946-0958,Marketing Direct
             {/* Validation Details */}
             {activeTab === 'invite' && validationResult && (
               <div className="bg-gray-50 rounded-lg p-3 mb-4 text-sm">
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2 mb-3">
                   <div>Total Users: <span className="font-medium">{validationResult.totalUsers}</span></div>
                   <div>New Users: <span className="font-medium text-green-600">{validationResult.newUsers}</span></div>
                   <div>Existing Users: <span className="font-medium text-yellow-600">{validationResult.existingUsers}</span></div>
-                  </div>
                 </div>
+
+                {/* Show existing users list */}
+                {validationResult.existingUsers > 0 && (
+                  <div className="border-t border-gray-200 pt-3">
+                    <h4 className="text-sm font-medium text-gray-900 mb-3">📋 Existing Users Found</h4>
+                    
+                    {/* Summary of existing users */}
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <AlertCircle className="w-4 h-4 text-yellow-600" />
+                        <span className="text-sm font-medium text-yellow-800">The following users already exist and will not receive invitations:</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-xs">
+                        {validationResult.results.some(r => r.existingUser) && (
+                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">👤 Already registered users</span>
+                        )}
+                        {validationResult.results.some(r => r.existingInvitation && !r.existingUser) && (
+                          <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded">📧 Invitations already sent</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="max-h-80 overflow-y-auto">
+                      <table className="min-w-full text-sm border border-gray-200">
+                        <thead className="bg-gray-100">
+                          <tr>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700 border-r border-gray-200">Name</th>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700 border-r border-gray-200">Email</th>
+                            <th className="px-3 py-2 text-left font-medium text-gray-700">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {validationResult.results
+                            .filter(result => result.isExisting)
+                            .map((result, index) => {
+                              let statusBadge = '';
+                              let bgColor = '';
+                              let statusText = '';
+                              
+                              if (result.existingUser) {
+                                // User exists in users table - show as "Already Registered"
+                                statusBadge = 'bg-blue-100 text-blue-800';
+                                statusText = 'Already Registered';
+                                bgColor = 'bg-blue-50';
+                              } else if (result.existingInvitation) {
+                                // User only exists in invitations table - show as "Invitation Already Sent"
+                                statusBadge = 'bg-orange-100 text-orange-800';
+                                statusText = 'Invitation Already Sent';
+                                bgColor = 'bg-orange-50';
+                              }
+                              
+                              return (
+                                <tr key={index} className={`border-b border-gray-200 ${bgColor}`}>
+                                  <td className="px-3 py-2 border-r border-gray-200">
+                                    <div className="font-medium text-gray-900">
+                                      {result.fullName}
+                                    </div>
+                                  </td>
+                                  <td className="px-3 py-2 border-r border-gray-200 break-words">
+                                    <div className="text-sm text-gray-700">
+                                      {result.email}
+                                    </div>
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${statusBadge}`}>
+                                      {result.existingUser && (
+                                        <>
+                                          <CheckCircle className="w-3 h-3 mr-1" />
+                                          {statusText}
+                                        </>
+                                      )}
+                                      {!result.existingUser && result.existingInvitation && (
+                                        <>
+                                          <Clock className="w-3 h-3 mr-1" />
+                                          {statusText}
+                                        </>
+                                      )}
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                        </tbody>
+                      </table>
+                    </div>
+                    
+                    {/* Help text */}
+                    <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700">
+                      💡 <strong>What happens next:</strong> Only the {validationResult.newUsers} new users will receive email invitations. Existing users will be skipped.
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
 
             {activeTab === 'create' && fullUserValidationResult && (

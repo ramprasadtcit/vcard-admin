@@ -3,7 +3,7 @@ name: TwinTik Admin Panel
 on:
   push:
     branches:
-      - dev
+      - dev-workflow-automation
 
 jobs:
   build_and_deploy:

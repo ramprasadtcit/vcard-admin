@@ -3,7 +3,7 @@
 ## User Roles Overview
 
 ### 1. Super Admin (Platform Level)
-- **Role**: `super_admin`
+- **Role**: `superadmin`
 - **Scope**: Platform-wide access
 - **Email**: `john@twintik.com`
 - **Domain**: `@twintik.com` (platform domain)
@@ -18,7 +18,7 @@
   - Access control and permissions
 
 ### 2. Platform Admin (Platform Level)
-- **Role**: `super_admin` (same role as Super Admin)
+- **Role**: `superadmin` (same role as Super Admin)
 - **Scope**: Platform-wide access (assists Super Admin)
 - **Email**: `alex.johnson@twintik.com`
 - **Domain**: `@twintik.com` (platform domain)

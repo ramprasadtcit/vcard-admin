@@ -5,7 +5,7 @@ import {
   Wifi, 
   CreditCard, 
   UserCheck, 
-  Wallet, 
+  // Wallet, 
   Search, 
   Filter, 
   Eye, 
@@ -36,13 +36,13 @@ const B2CUsersTab: React.FC = () => {
     const totalUsers = mockB2CUsers.length;
     const nfcRequests = mockB2CUsers.filter(user => user.nfcCardId).length;
     const avatarEnabled = mockB2CUsers.filter(user => user.avatar).length;
-    const walletAdds = mockB2CUsers.length; // Mock data - in real app this would be from wallet events
+    // const walletAdds = mockB2CUsers.length; // Mock data - in real app this would be from wallet events
 
     return {
       totalUsers: { count: totalUsers, change: '+18%', trend: 'up' },
       nfcRequests: { count: nfcRequests, change: '+12%', trend: 'up' },
       avatarEnabled: { count: avatarEnabled, change: '+30%', trend: 'up' },
-      walletAdds: { count: walletAdds, change: '+15%', trend: 'up' }
+      // walletAdds: { count: walletAdds, change: '+15%', trend: 'up' }
     };
   }, []);
 
@@ -226,6 +226,7 @@ const B2CUsersTab: React.FC = () => {
           </div>
         </div>
 
+        {/* Wallet Adds KPI - Commented out for future use
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -245,6 +246,7 @@ const B2CUsersTab: React.FC = () => {
             <span className="text-sm text-gray-600">{kpis.walletAdds.change}</span>
           </div>
         </div>
+        */}
       </div>
 
       {/* Filters */}

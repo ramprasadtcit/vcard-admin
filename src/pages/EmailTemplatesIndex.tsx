@@ -42,7 +42,7 @@ const EmailTemplatesIndex: React.FC = () => {
         }}>
           <p style={{ margin: '0', color: '#3730a3', fontSize: '16px', textAlign: 'center' }}>
             <strong>🎯 Interactive Email Templates</strong><br />
-            Click on any template below to view it. The Email Invitation template includes a working "Set Up My Digital Card" button that navigates to the profile page.
+            Click on any template below to view it.
           </p>
         </div>
 
@@ -139,7 +139,7 @@ const EmailTemplatesIndex: React.FC = () => {
             color: '#92400e',
             lineHeight: '1.6'
           }}>
-                         <li><strong>Email Invitation:</strong> Click the "Set Up My Digital Card" button to see it navigate to the profile setup page</li>
+            <li><strong>Email Invitation:</strong> View the invitation email template</li>
             <li><strong>NFC Confirmation:</strong> View the shipping confirmation and digital card access template</li>
             <li><strong>Mobile App Access:</strong> See the template with login credentials and app download links</li>
           </ul>

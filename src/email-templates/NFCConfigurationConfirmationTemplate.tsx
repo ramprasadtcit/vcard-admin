@@ -172,7 +172,7 @@ const NFCConfigurationConfirmationTemplate: React.FC<NFCConfigurationConfirmatio
             <li style={{ marginBottom: '8px' }}>Your NFC card will arrive within 2-3 business days</li>
             <li style={{ marginBottom: '8px' }}>You'll receive TwinTik mobile app access once it's available</li>
             <li style={{ marginBottom: '8px' }}>Track your card usage and analytics through the app</li>
-            <li style={{ marginBottom: '0' }}>Add your card to Apple Wallet or Google Wallet</li>
+            {/* <li style={{ marginBottom: '0' }}>Add your card to Apple Wallet or Google Wallet</li> */}
           </ul>
         </div>
 

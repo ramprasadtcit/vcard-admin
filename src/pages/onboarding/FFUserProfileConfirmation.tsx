@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import { 
   CheckCircle, 
   Clock, 
@@ -10,6 +11,8 @@ import {
 } from 'lucide-react';
 
 const FFUserProfileConfirmation: React.FC = () => {
+  const location = useLocation();
+  const username = location.state?.username;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-4">
@@ -140,7 +143,7 @@ const FFUserProfileConfirmation: React.FC = () => {
                   <p className="text-sm text-green-700">Know who viewed your card and when.</p>
                 </div>
               </div>
-              <div className="flex items-start space-x-3">
+              {/* <div className="flex items-start space-x-3">
                 <div className="w-5 h-5 bg-green-600 text-white rounded-full flex items-center justify-center text-xs font-medium mt-0.5">
                   💳
                 </div>
@@ -148,7 +151,8 @@ const FFUserProfileConfirmation: React.FC = () => {
                   <p className="font-medium text-green-900">Apple Wallet & Google Wallet</p>
                   <p className="text-sm text-green-700">Add your digital card directly to your mobile wallet for instant access.</p>
                 </div>
-              </div>
+              </div> */}
+
             </div>
             <div className="mt-4 p-3 bg-green-100 rounded-lg">
               <p className="text-sm text-green-800">
@@ -173,23 +177,16 @@ const FFUserProfileConfirmation: React.FC = () => {
                 <p className="text-sm text-purple-700">support@twintik.com</p>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
-              <Phone className="w-5 h-5 text-purple-600" />
-              <div>
-                <p className="font-medium text-purple-900">Phone Support</p>
-                <p className="text-sm text-purple-700">+1 (555) 123-4567</p>
-              </div>
-            </div>
           </div>
         </div>
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4">
           <button
-            onClick={() => window.open('https://twintik.com', '_blank')}
+            onClick={() => window.open(username ? `https://twintik.com/${username}` : 'https://twintik.com', '_blank')}
             className="flex-1 inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-purple-600 hover:bg-purple-700 transition-colors"
           >
-            Visit Our Website
+            Visit your digital card
             <ArrowRight className="w-4 h-4 ml-2" />
           </button>
           <button

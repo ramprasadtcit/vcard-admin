@@ -102,7 +102,7 @@ const Users: React.FC = () => {
 
   const getRoleBadge = (role: string) => {
     const roleConfig = {
-      super_admin: { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Super Admin' },
+      superadmin: { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Super Admin' },
       org_admin: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Org Admin' },
       sub_admin: { bg: 'bg-green-100', text: 'text-green-800', label: 'Sub Admin' },
     };
@@ -137,10 +137,10 @@ const Users: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            {currentUser?.role === 'super_admin' ? 'B2B User Management' : 'Team Users'}
+            {currentUser?.role === 'superadmin' ? 'B2B User Management' : 'Team Users'}
           </h1>
           <p className="text-gray-600">
-            {currentUser?.role === 'super_admin' 
+            {currentUser?.role === 'superadmin' 
               ? 'Manage organization administrators and platform users' 
               : 'Manage your organization team members'
             }
@@ -148,7 +148,7 @@ const Users: React.FC = () => {
         </div>
         <button className="btn-primary flex items-center mt-4 sm:mt-0">
           <UserPlus className="w-4 h-4 mr-2" />
-          {currentUser?.role === 'super_admin' ? 'Add Platform Admin' : 'Invite User'}
+          {currentUser?.role === 'superadmin' ? 'Add Platform Admin' : 'Invite User'}
         </button>
       </div>
 
@@ -181,7 +181,7 @@ const Users: React.FC = () => {
             <div>
               <p className="text-sm font-medium text-gray-600">Platform Admins</p>
               <p className="text-2xl font-bold text-gray-900">
-                {users.filter(user => user.role === 'super_admin').length}
+                {users.filter(user => user.role === 'superadmin').length}
               </p>
             </div>
             <Building2 className="w-8 h-8 text-purple-500" />
@@ -232,7 +232,7 @@ const Users: React.FC = () => {
               className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Roles</option>
-              <option value="super_admin">Super Admin</option>
+              <option value="superadmin">Super Admin</option>
               <option value="org_admin">Org Admin</option>
               <option value="sub_admin">Sub Admin</option>
             </select>
@@ -252,7 +252,7 @@ const Users: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Role
                 </th>
-                {currentUser?.role === 'super_admin' && (
+                {currentUser?.role === 'superadmin' && (
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Organization
                   </th>
@@ -290,7 +290,7 @@ const Users: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     {getRoleBadge(user.role)}
                   </td>
-                  {currentUser?.role === 'super_admin' && (
+                  {currentUser?.role === 'superadmin' && (
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {user.organizationId ? getOrganizationName(user.organizationId) : 'Platform'}
                     </td>

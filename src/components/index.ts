@@ -10,6 +10,7 @@ export { default as UserAvatar } from './UserAvatar';
 export { default as SimpleTable } from './SimpleTable';
 export { default as NotificationToast } from './NotificationToast';
 export { default as ComingSoonOverlay } from './ComingSoonOverlay';
+export { default as SafePhoneInput } from './SafePhoneInput';
 
 // Modal Components
 export { default as InviteUserModal } from './InviteUserModal';

@@ -1,4 +1,5 @@
 import axios, { InternalAxiosRequestConfig } from 'axios';
+import { toast } from 'react-toastify';
 import { User, Organization, NFCCard, CardTemplate, Subscription, Analytics } from '../types';
 import { 
   mockUsers, 
@@ -9,7 +10,7 @@ import {
 } from '../data/mockData';
 
 // Configure axios defaults
-console.log(process.env.REACT_APP_API_URL);
+console.log('API URL:', process.env.REACT_APP_API_URL);
 const api = axios.create({
    baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3000/api/v1',
   // baseURL: 'http://localhost:3000/api/v1',
@@ -39,10 +40,18 @@ api.interceptors.response.use(
   (response: any) => response,
   (error: any) => {
     if (error.response?.status === 401) {
+      
+      // Clear stored auth data
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
-      // window.location.href = '/login'; // Removed redirect
-      // Optionally, show a toast or set an error state here
+      
+      // Show session expired toaster
+      if (typeof window !== 'undefined') {
+        toast.error('Session expired. Please login again.');
+        
+        // Navigate to login page
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

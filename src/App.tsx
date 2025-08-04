@@ -2,7 +2,7 @@ import React, { ReactElement } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, NotificationProvider, FFUsersProvider } from './contexts';
 import RouteGuard from './components/RouteGuard';
-import Layout from './components/Layout';
+import Layout from './components/Layout';  
 
 // Import pages from organized structure
 import {

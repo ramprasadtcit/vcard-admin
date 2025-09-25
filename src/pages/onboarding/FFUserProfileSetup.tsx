@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import * as Yup from "yup";
 import {
   parsePhoneNumber,
@@ -270,6 +271,7 @@ const validationSchema = Yup.object().shape({
 const FFUserProfileSetup: React.FC = () => {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
 
   const [loading, setLoading] = useState(true);
   const [tokenValid, setTokenValid] = useState(false);
@@ -319,6 +321,11 @@ const FFUserProfileSetup: React.FC = () => {
   const [usernameCheckError, setUsernameCheckError] = useState<string | null>(
     null
   );
+
+  // Language switcher handler
+  const handleLanguageChange = (language: string) => {
+    i18n.changeLanguage(language);
+  };
 
   // Validate invitation token on page load
   useEffect(() => {
@@ -851,11 +858,10 @@ const FFUserProfileSetup: React.FC = () => {
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Invitation Expired
+            {t('digitalCardSetup.invitationExpired')}
           </h1>
           <p className="text-gray-600">
-            This invitation link has expired. Please contact the administrator
-            to request a new invitation.
+            {t('digitalCardSetup.expiredMessage')}
           </p>
         </div>
       </div>
@@ -868,11 +874,10 @@ const FFUserProfileSetup: React.FC = () => {
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
           <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Already Registered
+            {t('digitalCardSetup.alreadyRegistered')}
           </h1>
           <p className="text-gray-600">
-            This invitation has already been used to create a profile. If you
-            need to update your profile, please contact the administrator.
+            {t('digitalCardSetup.alreadyRegisteredMessage')}
           </p>
         </div>
       </div>
@@ -885,11 +890,10 @@ const FFUserProfileSetup: React.FC = () => {
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Invalid Invitation
+            {t('digitalCardSetup.invalidInvitation')}
           </h1>
           <p className="text-gray-600">
-            This invitation link is invalid or has been removed. Please contact
-            the administrator for assistance.
+            {t('digitalCardSetup.invalidInvitationMessage')}
           </p>
         </div>
       </div>
@@ -902,23 +906,43 @@ const FFUserProfileSetup: React.FC = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Validating your invitation...</p>
+          <p className="mt-4 text-gray-600">{t('digitalCardSetup.validatingInvitation')}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
               <img src={twintikLogo} alt="TwinTik Logo" className="w-20 h-5" />
-              <h1 className="ml-4 text-xl font-semibold text-gray-900">
-                Digital Card Setup
+              <h1 className={`${i18n.language === 'ar' ? 'mr-4' : 'ml-4'} text-xl font-semibold text-gray-900`}>
+                {t('digitalCardSetup.title')}
               </h1>
+            </div>
+            
+            {/* Language Switcher */}
+            <div className="relative">
+              <select
+                value={i18n.language}
+                onChange={(e) => handleLanguageChange(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm bg-white min-w-[120px] appearance-none cursor-pointer"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
+                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9 12,15 18,9"></polyline></svg>'
+                  )}")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 8px center',
+                  backgroundSize: '16px',
+                }}
+              >
+                <option value="en">English</option>
+                <option value="ar">العربية</option>
+              </select>
             </div>
           </div>
         </div>
@@ -929,12 +953,10 @@ const FFUserProfileSetup: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border">
           <div className="px-6 py-4 border-b border-gray-200">
             <h2 className="text-lg font-medium text-gray-900">
-              Complete Your Digital Card Profile
+              {t('digitalCardSetup.formTitle')}
             </h2>
             <p className="mt-1 text-sm text-gray-600">
-              Fill in your details to create your personalized digital business
-              card. Our team will review and configure your NFC card for
-              sharing.
+              {t('digitalCardSetup.formSubtitle')}
             </p>
           </div>
 
@@ -942,8 +964,8 @@ const FFUserProfileSetup: React.FC = () => {
             {/* Profile Picture Section */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <Camera className="w-5 h-5 mr-2 text-purple-600" />
-                Profile Picture
+                <Camera className={`w-5 h-5 ${i18n.language === 'ar' ? 'ml-2' : 'mr-2'} text-purple-600`} />
+                {t('digitalCardSetup.profilePicture')}
               </h3>
               <div className="flex items-center space-x-6">
                 <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
@@ -958,11 +980,12 @@ const FFUserProfileSetup: React.FC = () => {
                   )}
                 </div>
                 <div>
-                  <input
-                    type="file"
-                    accept=".png,.jpeg,.jpg,.webp"
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
-                    onChange={async (e) => {
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept=".png,.jpeg,.jpg,.webp"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (file) {
                         // Validate image format
@@ -1002,8 +1025,16 @@ const FFUserProfileSetup: React.FC = () => {
                       }
                     }}
                   />
+                    <button
+                      type="button"
+                      className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <Camera className={`w-4 h-4 ${i18n.language === 'ar' ? 'ml-2' : 'mr-2'}`} />
+                      {t('digitalCardSetup.chooseFile')}
+                    </button>
+                  </div>
                   <p className="mt-1 text-xs text-gray-500">
-                    Upload a profile picture (PNG, JPEG, JPG, WebP - max 7MB)
+                    {t('digitalCardSetup.profilePictureHint')}
                   </p>
                 </div>
               </div>
@@ -1012,13 +1043,13 @@ const FFUserProfileSetup: React.FC = () => {
             {/* Basic Information Section */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <User className="w-5 h-5 mr-2 text-purple-600" />
-                Basic Information
+                <User className={`w-5 h-5 ${i18n.language === 'ar' ? 'ml-2' : 'mr-2'} text-purple-600`} />
+                {t('digitalCardSetup.basicInformation')}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Full Name <span style={{ color: "red" }}>*</span>
+                    {t('digitalCardSetup.fullName')} <span style={{ color: "red" }}>*</span>
                   </label>
                   <input
                     type="text"
@@ -1040,7 +1071,7 @@ const FFUserProfileSetup: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Job Title <span style={{ color: "red" }}>*</span>
+                    {t('digitalCardSetup.jobTitle')} <span style={{ color: "red" }}>*</span>
                   </label>
                   <input
                     type="text"
@@ -1062,7 +1093,7 @@ const FFUserProfileSetup: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Company <span style={{ color: "red" }}>*</span>
+                    {t('digitalCardSetup.company')} <span style={{ color: "red" }}>*</span>
                   </label>
                   <input
                     type="text"
@@ -1084,7 +1115,7 @@ const FFUserProfileSetup: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Website
+                    {t('digitalCardSetup.website')}
                   </label>
                   <input
                     type="url"
@@ -1095,7 +1126,7 @@ const FFUserProfileSetup: React.FC = () => {
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
                       formErrors.website ? "border-red-500" : "border-gray-300"
                     }`}
-                    placeholder="https://yourwebsite.com"
+                    placeholder={t('digitalCardSetup.websitePlaceholder')}
                     data-error={!!formErrors.website}
                   />
                   {formErrors.website && (
@@ -1107,7 +1138,7 @@ const FFUserProfileSetup: React.FC = () => {
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Profile URL <span style={{ color: "red" }}>*</span>
+                    {t('digitalCardSetup.profileUrl')} <span style={{ color: "red" }}>*</span>
                   </label>
 
                   <div className="flex items-stretch">
@@ -1139,7 +1170,7 @@ const FFUserProfileSetup: React.FC = () => {
                             ? "border-red-500"
                             : "border-gray-300"
                         } ${usernameAvailable !== null ? "pr-10" : ""}`}
-                        placeholder="yourusername"
+                        placeholder={t('digitalCardSetup.usernamePlaceholder')}
                       />
                       {usernameAvailable === true && (
                         <div className="absolute inset-y-0 right-0 flex items-center pr-3">
@@ -1166,7 +1197,7 @@ const FFUserProfileSetup: React.FC = () => {
                       }
                       className="h-12 w-24 ml-4 bg-purple-600 text-white rounded-full hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center justify-center"
                     >
-                      {checkingUsername ? "Checking..." : "Check"}
+                      {checkingUsername ? t('digitalCardSetup.checking') : t('digitalCardSetup.check')}
                     </button>
                   </div>
 
@@ -1174,7 +1205,7 @@ const FFUserProfileSetup: React.FC = () => {
                   {usernameAvailable === true && (
                     <p className="text-green-600 text-xs mt-1 flex items-center">
                       <CheckCircle className="w-3 h-3 mr-1" />
-                      This URL is available!
+                      {t('digitalCardSetup.urlAvailable')}
                     </p>
                   )}
                   {usernameAvailable === false && usernameCheckError && (
@@ -1189,7 +1220,7 @@ const FFUserProfileSetup: React.FC = () => {
                     <div className="mt-2">
                       <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 shadow-sm">
                         <span className="text-xs text-gray-600 font-semibold block mb-2">
-                          Suggestions:
+                          {t('digitalCardSetup.suggestions')}:
                         </span>
                         <div className="flex flex-wrap gap-2">
                           {usernameSuggestions.map((suggestion) => (
@@ -1220,7 +1251,7 @@ const FFUserProfileSetup: React.FC = () => {
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Bio
+                    {t('digitalCardSetup.bio')}
                   </label>
                   <textarea
                     rows={3}
@@ -1229,7 +1260,7 @@ const FFUserProfileSetup: React.FC = () => {
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
                       formErrors.bio ? "border-red-500" : "border-gray-300"
                     }`}
-                    placeholder="Tell us about yourself..."
+                    placeholder={t('digitalCardSetup.bioPlaceholder')}
                     data-error={!!formErrors.bio}
                   />
                   {formErrors.bio && (
@@ -1245,33 +1276,32 @@ const FFUserProfileSetup: React.FC = () => {
             {/* Contact Information Section */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <Mail className="w-5 h-5 mr-2 text-purple-600" />
-                Contact Information
+                <Mail className={`w-5 h-5 ${i18n.language === 'ar' ? 'ml-2' : 'mr-2'} text-purple-600`} />
+                {t('digitalCardSetup.contactInformation')}
               </h3>
 
               {/* Email Section */}
               <div className="space-y-4 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Primary Email <span style={{ color: "red" }}>*</span>
+                    {t('digitalCardSetup.primaryEmail')} <span style={{ color: "red" }}>*</span>
                   </label>
                   <input
                     type="email"
                     value={formData.email}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 cursor-not-allowed"
-                    placeholder="Email address (pre-filled from invitation)"
+                    placeholder={t('digitalCardSetup.emailPlaceholder')}
                     disabled={true}
                     readOnly={true}
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    This email address was provided in your invitation and
-                    cannot be changed
+                    {t('digitalCardSetup.emailNote')}
                   </p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Additional Emails
+                    {t('digitalCardSetup.additionalEmails')}
                   </label>
                   <div className="space-y-2">
                     {formData.additionalEmails.map((email, index) => (
@@ -1292,7 +1322,7 @@ const FFUserProfileSetup: React.FC = () => {
                               ? "border-red-500"
                               : "border-gray-300"
                           }`}
-                          placeholder="sarah.j@example.com"
+                          placeholder={t('digitalCardSetup.additionalEmailPlaceholder')}
                           data-error={!!formErrors[`additionalEmails.${index}`]}
                         />
                         {formErrors[`additionalEmails.${index}`] && (
@@ -1330,7 +1360,7 @@ const FFUserProfileSetup: React.FC = () => {
                         className="text-sm text-purple-600 hover:text-purple-800 flex items-center transition-colors"
                       >
                         <Plus className="w-4 h-4 mr-1" />
-                        Add another email
+                        {t('digitalCardSetup.addAnotherEmail')}
                       </button>
                     )}
                   </div>
@@ -1341,7 +1371,7 @@ const FFUserProfileSetup: React.FC = () => {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Primary Phone Number <span style={{ color: "red" }}>*</span>
+                    {t('digitalCardSetup.primaryPhone')} <span style={{ color: "red" }}>*</span>
                   </label>
                   <SafePhoneInput
                     international
@@ -1349,7 +1379,7 @@ const FFUserProfileSetup: React.FC = () => {
                     defaultCountry="AE"
                     value={formData.phone}
                     onChange={(value) => handlePrimaryPhoneChange(value)}
-                    placeholder="Enter phone number"
+                    placeholder={t('digitalCardSetup.enterPhoneNumber')}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
                       formErrors.phone ? "border-red-500" : "border-gray-300"
                     }`}
@@ -1365,7 +1395,7 @@ const FFUserProfileSetup: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Additional Phone Numbers
+                    {t('digitalCardSetup.additionalPhones')}
                   </label>
                   <div className="space-y-2">
                     {formData.additionalPhones.map((phone, index) => (
@@ -1382,7 +1412,7 @@ const FFUserProfileSetup: React.FC = () => {
                                 value
                               )
                             }
-                            placeholder="Enter phone number"
+                            placeholder={t('digitalCardSetup.enterPhoneNumber')}
                             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
                               formErrors[`additionalPhones.${index}`]
                                 ? "border-red-500"
@@ -1415,7 +1445,7 @@ const FFUserProfileSetup: React.FC = () => {
                         className="text-sm text-purple-600 hover:text-purple-800 flex items-center transition-colors"
                       >
                         <Plus className="w-4 h-4 mr-1" />
-                        Add another phone number
+                        {t('digitalCardSetup.addAnotherPhone')}
                       </button>
                     )}
                   </div>
@@ -1426,13 +1456,13 @@ const FFUserProfileSetup: React.FC = () => {
             {/* Address Section */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <MapPin className="w-5 h-5 mr-2 text-purple-600" />
-                Address
+                <MapPin className={`w-5 h-5 ${i18n.language === 'ar' ? 'ml-2' : 'mr-2'} text-purple-600`} />
+                {t('digitalCardSetup.address')}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Street Address
+                    {t('digitalCardSetup.streetAddress')}
                   </label>
                   <input
                     type="text"
@@ -1445,7 +1475,7 @@ const FFUserProfileSetup: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    City
+                    {t('digitalCardSetup.city')}
                   </label>
                   <input
                     type="text"
@@ -1458,7 +1488,7 @@ const FFUserProfileSetup: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    State/Province
+                    {t('digitalCardSetup.state')}
                   </label>
                   <input
                     type="text"
@@ -1471,7 +1501,7 @@ const FFUserProfileSetup: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    ZIP/Postal Code
+                    {t('digitalCardSetup.zipCode')}
                   </label>
                   <input
                     type="text"
@@ -1484,7 +1514,7 @@ const FFUserProfileSetup: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Country
+                    {t('digitalCardSetup.country')}
                   </label>
                   <Select
                     options={countries}
@@ -1501,7 +1531,7 @@ const FFUserProfileSetup: React.FC = () => {
                         selectedOption?.label || ""
                       )
                     }
-                    placeholder="Select a country"
+                    placeholder={t('digitalCardSetup.selectCountry')}
                     styles={selectStyles}
                     isSearchable={true}
                     isClearable={true}
@@ -1527,14 +1557,14 @@ const FFUserProfileSetup: React.FC = () => {
             {/* Social Media Section */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <Globe className="w-5 h-5 mr-2 text-purple-600" />
-                Social Media Links
+                <Globe className={`w-5 h-5 ${i18n.language === 'ar' ? 'ml-2' : 'mr-2'} text-purple-600`} />
+                {t('digitalCardSetup.socialMediaLinks')}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                    <Linkedin className="w-4 h-4 mr-2 text-blue-600" />
-                    LinkedIn
+                    <Linkedin className={`w-4 h-4 ${i18n.language === 'ar' ? 'ml-2' : 'mr-2'} text-blue-600`} />
+                    {t('digitalCardSetup.linkedin')}
                   </label>
                   <input
                     type="url"
@@ -1547,7 +1577,7 @@ const FFUserProfileSetup: React.FC = () => {
                         ? "border-red-500"
                         : "border-gray-300"
                     }`}
-                    placeholder="https://linkedin.com/in/yourprofile"
+                    placeholder={t('digitalCardSetup.linkedinPlaceholder')}
                     data-error={!!formErrors["socialLinks.linkedin"]}
                   />
                   {formErrors["socialLinks.linkedin"] && (
@@ -1559,7 +1589,7 @@ const FFUserProfileSetup: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                    <Twitter className="w-4 h-4 mr-2 text-blue-400" />X
+                    <Twitter className={`w-4 h-4 ${i18n.language === 'ar' ? 'ml-2' : 'mr-2'} text-blue-400`} />{t('digitalCardSetup.x')}
                   </label>
                   <input
                     type="url"
@@ -1572,7 +1602,7 @@ const FFUserProfileSetup: React.FC = () => {
                         ? "border-red-500"
                         : "border-gray-300"
                     }`}
-                    placeholder="https://x.com/yourhandle"
+                    placeholder={t('digitalCardSetup.xPlaceholder')}
                     data-error={!!formErrors["socialLinks.x"]}
                   />
                   {formErrors["socialLinks.x"] && (
@@ -1584,8 +1614,8 @@ const FFUserProfileSetup: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                    <Instagram className="w-4 h-4 mr-2 text-pink-600" />
-                    Instagram
+                    <Instagram className={`w-4 h-4 ${i18n.language === 'ar' ? 'ml-2' : 'mr-2'} text-pink-600`} />
+                    {t('digitalCardSetup.instagram')}
                   </label>
                   <input
                     type="url"
@@ -1598,7 +1628,7 @@ const FFUserProfileSetup: React.FC = () => {
                         ? "border-red-500"
                         : "border-gray-300"
                     }`}
-                    placeholder="https://instagram.com/yourhandle"
+                    placeholder={t('digitalCardSetup.instagramPlaceholder')}
                     data-error={!!formErrors["socialLinks.instagram"]}
                   />
                   {formErrors["socialLinks.instagram"] && (
@@ -1614,8 +1644,8 @@ const FFUserProfileSetup: React.FC = () => {
             {/* Custom Social Media Section */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <Globe className="w-5 h-5 mr-2 text-purple-600" />
-                Custom Social Media Links
+                <Globe className={`w-5 h-5 ${i18n.language === 'ar' ? 'ml-2' : 'mr-2'} text-purple-600`} />
+                {t('digitalCardSetup.customSocialLinks')}
               </h3>
               <div className="space-y-3">
                 {formData.customSocialLinks.map((link, index) => (
@@ -1623,7 +1653,7 @@ const FFUserProfileSetup: React.FC = () => {
                     <div className="flex items-start space-x-3">
                       <div className="flex-1">
                         <label className="block text-xs font-medium text-gray-600 mb-1">
-                          Platform Name
+                          {t('digitalCardSetup.platformName')}
                         </label>
                         <input
                           type="text"
@@ -1644,7 +1674,7 @@ const FFUserProfileSetup: React.FC = () => {
                               ? "border-red-500"
                               : "border-gray-300"
                           }`}
-                          placeholder="e.g., TikTok, Snapchat, Medium"
+                          placeholder={t('digitalCardSetup.platformPlaceholder')}
                           data-error={
                             !!formErrors[`customSocialLinks.${index}.platform`]
                           }
@@ -1658,7 +1688,7 @@ const FFUserProfileSetup: React.FC = () => {
                       </div>
                       <div className="flex-1">
                         <label className="block text-xs font-medium text-gray-600 mb-1">
-                          Profile URL
+                          {t('digitalCardSetup.profileUrlLabel')}
                         </label>
                         <input
                           type="url"
@@ -1679,7 +1709,7 @@ const FFUserProfileSetup: React.FC = () => {
                               ? "border-red-500"
                               : "border-gray-300"
                           }`}
-                          placeholder="https://example.com/yourprofile"
+                          placeholder={t('digitalCardSetup.urlPlaceholder')}
                           data-error={
                             !!formErrors[`customSocialLinks.${index}.url`]
                           }
@@ -1722,7 +1752,7 @@ const FFUserProfileSetup: React.FC = () => {
                   className="text-sm text-purple-600 hover:text-purple-800 flex items-center transition-colors"
                 >
                   <Plus className="w-4 h-4 mr-1" />
-                  Add custom social media link
+                  {t('digitalCardSetup.addCustomLink')}
                 </button>
               </div>
             </div>
@@ -1735,20 +1765,20 @@ const FFUserProfileSetup: React.FC = () => {
                 </div>
                 <div className="ml-3">
                   <h4 className="text-sm font-medium text-blue-800">
-                    What happens next?
+                    {t('digitalCardSetup.whatHappensNext')}
                   </h4>
                   <div className="mt-2 text-sm text-blue-700">
                     <p className="mb-2">
-                      Once you submit your profile, our team will:
+                      {t('digitalCardSetup.onceSubmitted')}
                     </p>
                     <ul className="list-disc list-inside space-y-1 ml-2">
-                      <li>Review your profile information</li>
-                      <li>Configure your NFC card with your details</li>
-                      <li>Set up your digital card for sharing</li>
-                      <li>Send you a confirmation email with next steps</li>
+                      <li>{t('digitalCardSetup.reviewProfile')}</li>
+                      <li>{t('digitalCardSetup.configureNFC')}</li>
+                      <li>{t('digitalCardSetup.setupDigitalCard')}</li>
+                      <li>{t('digitalCardSetup.sendConfirmation')}</li>
                     </ul>
                     <p className="mt-3 text-blue-600 font-medium">
-                      This process typically takes 1-2 business days.
+                      {t('digitalCardSetup.processingTime')}
                     </p>
                   </div>
                 </div>
@@ -1765,12 +1795,12 @@ const FFUserProfileSetup: React.FC = () => {
                 {saving ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Submitting...
+                    {t('digitalCardSetup.submitting')}
                   </>
                 ) : (
                   <>
                     <Save className="w-4 h-4 mr-2" />
-                    Submit Profile for Review
+                    {t('digitalCardSetup.submitProfile')}
                   </>
                 )}
               </button>

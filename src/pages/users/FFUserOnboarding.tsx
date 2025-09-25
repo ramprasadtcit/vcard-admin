@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { 
   Users, 
   UserPlus, 
@@ -49,6 +50,7 @@ const FFUserOnboarding: React.FC = () => {
   const { user: currentUser } = useAuth();
   const { addNotification } = useNotifications();
   const { ffUsers, addFFUsers, updateFFUser, deleteFFUser } = useFFUsers();
+  const { t, i18n } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -334,9 +336,9 @@ const FFUserOnboarding: React.FC = () => {
     return (
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
         <Icon className="w-3 h-3 mr-1" />
-        {status === 'invited' ? 'Invited' : 
-         status === 'completed' ? 'Completed' : 
-         status === 'expired' ? 'Invite Expired' : status}
+        {status === 'invited' ? t('fnfOnboarding.invited') : 
+         status === 'completed' ? t('fnfOnboarding.completed') : 
+         status === 'expired' ? t('fnfOnboarding.inviteExpired') : status}
       </span>
     );
   };
@@ -347,11 +349,11 @@ const FFUserOnboarding: React.FC = () => {
     }
 
     const nfcStatusConfig = {
-      pending: { color: 'bg-yellow-100 text-yellow-800', text: 'Pending' },
-      configured: { color: 'bg-green-100 text-green-800', text: 'Configured' },
-      shipped: { color: 'bg-purple-100 text-purple-800', text: 'Shipped' },
+      pending: { color: 'bg-yellow-100 text-yellow-800', text: t('fnfOnboarding.pending') },
+      configured: { color: 'bg-green-100 text-green-800', text: t('fnfOnboarding.configured') },
+      shipped: { color: 'bg-purple-100 text-purple-800', text: t('fnfOnboarding.shipped') },
       // delivered: { color: 'bg-green-100 text-green-800', text: 'Delivered' },
-      failed: { color: 'bg-red-100 text-red-800', text: 'Failed' },
+      failed: { color: 'bg-red-100 text-red-800', text: t('fnfOnboarding.failed') },
     };
 
     const config = nfcStatusConfig[nfcStatus as keyof typeof nfcStatusConfig];
@@ -372,13 +374,13 @@ const FFUserOnboarding: React.FC = () => {
   return (
     <>
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
-      <div className="space-y-6">
+      <div className="space-y-6" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">F&F User Onboarding</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('fnfOnboarding.title')}</h1>
           <p className="text-gray-600 mt-1">
-            Manage Friends & Family user invitations and track onboarding progress
+            {t('fnfOnboarding.subtitle')}
           </p>
         </div>
         <div className="flex items-center space-x-3 mt-4 sm:mt-0">
@@ -387,14 +389,14 @@ const FFUserOnboarding: React.FC = () => {
             className="btn-primary flex items-center"
           >
             <UserPlus className="w-4 h-4 mr-2" />
-            Invite New User
+            {t('fnfOnboarding.inviteNewUser')}
           </button>
           <button
             onClick={() => navigate('/admin/fnf-onboarding/bulk-import')}
             className="btn-secondary flex items-center"
           >
             <Upload className="w-4 h-4 mr-2" />
-            Bulk Import
+            {t('fnfOnboarding.bulkImport')}
           </button>
         </div>
       </div>
@@ -407,7 +409,7 @@ const FFUserOnboarding: React.FC = () => {
               <Clock className="w-6 h-6 text-blue-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Invited</p>
+              <p className="text-sm font-medium text-gray-600">{t('fnfOnboarding.invited')}</p>
               <p className="text-2xl font-semibold text-gray-900">{stats.invited}</p>
             </div>
           </div>
@@ -419,7 +421,7 @@ const FFUserOnboarding: React.FC = () => {
               <CheckCircle className="w-6 h-6 text-green-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Completed</p>
+              <p className="text-sm font-medium text-gray-600">{t('fnfOnboarding.completed')}</p>
               <p className="text-2xl font-semibold text-gray-900">{stats.completed}</p>
             </div>
           </div>
@@ -431,7 +433,7 @@ const FFUserOnboarding: React.FC = () => {
               <AlertCircle className="w-6 h-6 text-red-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Expired</p>
+              <p className="text-sm font-medium text-gray-600">{t('fnfOnboarding.expired')}</p>
               <p className="text-2xl font-semibold text-gray-900">{stats.inviteExpired}</p>
             </div>
           </div>
@@ -446,7 +448,7 @@ const FFUserOnboarding: React.FC = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder="Search by name or email..."
+                placeholder={t('fnfOnboarding.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -466,10 +468,10 @@ const FFUserOnboarding: React.FC = () => {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="px-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
             >
-              <option value="all">All Status</option>
-              <option value="invited">Invited</option>
-              <option value="completed">Completed</option>
-              <option value="expired">Invite Expired</option>
+              <option value="all">{t('fnfOnboarding.allStatus')}</option>
+              <option value="invited">{t('fnfOnboarding.invited')}</option>
+              <option value="completed">{t('fnfOnboarding.completed')}</option>
+              <option value="expired">{t('fnfOnboarding.inviteExpired')}</option>
             </select>
           </div>
           
@@ -491,7 +493,7 @@ const FFUserOnboarding: React.FC = () => {
                     onClick={() => handleSort('fullName')}
                   >
                     <div className="flex items-center space-x-1">
-                      <span>Name</span>
+                      <span>{t('fnfOnboarding.name')}</span>
                       {getSortIcon('fullName')}
                     </div>
                   </th>
@@ -500,7 +502,7 @@ const FFUserOnboarding: React.FC = () => {
                     onClick={() => handleSort('emailAddress')}
                   >
                     <div className="flex items-center space-x-1">
-                      <span>Email</span>
+                      <span>{t('fnfOnboarding.email')}</span>
                       {getSortIcon('emailAddress')}
                     </div>
                   </th>
@@ -509,7 +511,7 @@ const FFUserOnboarding: React.FC = () => {
                     onClick={() => handleSort('status')}
                   >
                     <div className="flex items-center space-x-1">
-                      <span>Status</span>
+                      <span>{t('fnfOnboarding.status')}</span>
                       {getSortIcon('status')}
                     </div>
                   </th>
@@ -518,7 +520,7 @@ const FFUserOnboarding: React.FC = () => {
                     onClick={() => handleSort('nfcStatus')}
                   >
                     <div className="flex items-center space-x-1">
-                      <span>NFC Status</span>
+                      <span>{t('fnfOnboarding.nfcStatus')}</span>
                       {getSortIcon('nfcStatus')}
                     </div>
                   </th>
@@ -527,28 +529,28 @@ const FFUserOnboarding: React.FC = () => {
                     onClick={() => handleSort('updatedAt')}
                   >
                     <div className="flex items-center space-x-1">
-                      <span>Last Updated Date</span>
+                      <span>{t('fnfOnboarding.lastUpdated')}</span>
                       {getSortIcon('updatedAt')}
                     </div>
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
+                    {t('fnfOnboarding.actions')}
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {loadingInvitations ? (
-                  <tr><td colSpan={6} className="text-center py-8">Loading invitations...</td></tr>
+                  <tr><td colSpan={6} className="text-center py-8">{t('fnfOnboarding.loadingInvitations')}</td></tr>
                 ) : filteredUsers.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="text-center py-12">
                       <div className="flex flex-col items-center">
                         <Users className="w-12 h-12 text-gray-400 mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">No data found</h3>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">{t('fnfOnboarding.noDataFound')}</h3>
                         <p className="text-gray-600">
                           {searchTerm || statusFilter !== 'all' 
-                            ? 'Try adjusting your search or filter criteria.'
-                            : 'Start by inviting your first F&F user.'
+                            ? t('fnfOnboarding.tryAdjustingSearch')
+                            : t('fnfOnboarding.startInviting')
                           }
                         </p>
                       </div>
@@ -634,7 +636,11 @@ const FFUserOnboarding: React.FC = () => {
           <div className="bg-white px-6 py-3 border-t border-gray-200 flex items-center justify-between">
             <div className="flex items-center text-sm text-gray-700">
               <span>
-                Showing {startIndex + 1} to {Math.min(endIndex, filteredUsers.length)} of {filteredUsers.length} results
+                {t('fnfOnboarding.showingResults', { 
+                  start: startIndex + 1, 
+                  end: Math.min(endIndex, filteredUsers.length), 
+                  total: filteredUsers.length 
+                })}
               </span>
             </div>
             <div className="flex items-center space-x-2">
@@ -644,7 +650,7 @@ const FFUserOnboarding: React.FC = () => {
                 className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronLeft className="w-4 h-4" />
-                Previous
+                {t('fnfOnboarding.previous')}
               </button>
               
               <div className="flex items-center space-x-1">
@@ -668,7 +674,7 @@ const FFUserOnboarding: React.FC = () => {
                 disabled={currentPage === totalPages}
                 className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Next
+                {t('fnfOnboarding.next')}
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
@@ -692,17 +698,17 @@ const FFUserOnboarding: React.FC = () => {
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <div className="flex items-center space-x-3 mb-4">
               <Mail className="w-6 h-6 text-blue-600" />
-              <h3 className="text-lg font-medium text-gray-900">Resend Invitation</h3>
+              <h3 className="text-lg font-medium text-gray-900">{t('fnfOnboarding.resendInvitation')}</h3>
             </div>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to resend the onboarding invitation to <strong>{selectedUser.emailAddress}</strong>?
+              {t('fnfOnboarding.resendConfirmation', { email: selectedUser.emailAddress })}
             </p>
             <div className="flex space-x-3">
               <button
                 onClick={() => setShowResendModal(false)}
                 className="btn-secondary flex-1"
               >
-                Cancel
+                {t('fnfOnboarding.cancel')}
               </button>
               <button
                 onClick={confirmResendInvite}
@@ -712,12 +718,12 @@ const FFUserOnboarding: React.FC = () => {
                 {isLoading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                    Resending...
+                    {t('fnfOnboarding.resending')}
                   </>
                 ) : (
                   <>
                     <Mail className="w-4 h-4 mr-2" />
-                    Resend Invitation
+                    {t('fnfOnboarding.resendInvitation')}
                   </>
                 )}
               </button>
@@ -732,17 +738,17 @@ const FFUserOnboarding: React.FC = () => {
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <div className="flex items-center space-x-3 mb-4">
               <Trash2 className="w-6 h-6 text-red-600" />
-              <h3 className="text-lg font-medium text-gray-900">Delete User</h3>
+              <h3 className="text-lg font-medium text-gray-900">{t('fnfOnboarding.deleteUser')}</h3>
             </div>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to delete <strong>{selectedUser.fullName || ''}</strong>? This action cannot be undone.
+              {t('fnfOnboarding.deleteConfirmation', { name: selectedUser.fullName || '' })}
             </p>
             <div className="flex space-x-3">
               <button
                 onClick={() => setShowDeleteModal(false)}
                 className="btn-secondary flex-1"
               >
-                Cancel
+                {t('fnfOnboarding.cancel')}
               </button>
               <button
                 onClick={confirmDeleteUser}
@@ -752,12 +758,12 @@ const FFUserOnboarding: React.FC = () => {
                 {deleting ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                    Deleting...
+                    {t('fnfOnboarding.deleting')}
                   </>
                 ) : (
                   <>
                     <Trash2 className="w-4 h-4 mr-2" />
-                    Delete User
+                    {t('fnfOnboarding.deleteUser')}
                   </>
                 )}
               </button>

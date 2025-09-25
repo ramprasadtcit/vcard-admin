@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
   User,
@@ -153,6 +154,7 @@ const FFUserDetail: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const { t, i18n } = useTranslation();
 
   const [invitation, setInvitation] = useState<Invitation | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -271,7 +273,7 @@ const FFUserDetail: React.FC = () => {
   }, [editMode, userProfile]);
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+    return new Date(dateString).toLocaleDateString(i18n.language === 'ar' ? 'ar-SA' : 'en-US', {
       year: "numeric",
       month: "long",
       day: "numeric",
@@ -397,7 +399,7 @@ const FFUserDetail: React.FC = () => {
     return (
       <div className="text-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p className="text-gray-600">Loading details...</p>
+        <p className="text-gray-600">{t("common.loading")}</p>
       </div>
     );
   }
@@ -1017,7 +1019,7 @@ const FFUserDetail: React.FC = () => {
           toast.success("NFC marked as configured successfully");
 
           // Update the local state to reflect the change
-          setUserProfile((prev) => ({
+          setUserProfile((prev: any) => ({
             ...prev,
             data: {
               ...prev.data,
@@ -1048,63 +1050,65 @@ const FFUserDetail: React.FC = () => {
           draggable
           pauseOnHover
         />
-        <div className="flex flex-col w-full">
+        <div className="flex flex-col w-full" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <button
               onClick={() => navigate("/admin/fnf-onboarding")}
               className="btn btn-secondary"
             >
-              Back to List
+              {t("userDetail.back")}
             </button>
             <div className="flex flex-col items-center flex-1">
               <span className="font-bold text-xl">
                 {profile?.fullName || "-"}
               </span>
               <div className="text-sm text-gray-500">
-                FF User Profile Details
+                {t("userDetail.details")}
               </div>
               <div className="flex items-center mt-1">
                 <span className="text-green-600 font-medium mr-2">
-                  Status: Profile Completed
+                  {t("userDetail.statusCompleted")}
                 </span>
-                <span className="text-yellow-600 font-medium">NFC Pending</span>
+                <span className="text-yellow-600 font-medium">{t("userDetail.nfcPending")}</span>
               </div>
             </div>
-            {!editMode ? (
-              <button
-                onClick={handleEdit}
-                className="btn btn-primary flex items-center"
-              >
-                <Pencil className="w-4 h-4 mr-1" /> Edit Profile
-              </button>
-            ) : (
-              <div className="flex gap-2">
+            <div className="flex items-center gap-4">
+              {!editMode ? (
                 <button
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className="btn btn-success flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleEdit}
+                  className="btn btn-primary flex items-center"
                 >
-                  {isSaving ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4 mr-1" />
-                      Save
-                    </>
-                  )}
+                  <Pencil className="w-4 h-4 mr-1" /> {t("userDetail.edit")}
                 </button>
-                <button
-                  onClick={handleCancel}
-                  className="btn btn-secondary flex items-center"
-                >
-                  <Close className="w-4 h-4 mr-1" /> Cancel
-                </button>
-              </div>
-            )}
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="btn btn-success flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSaving ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        {t("userDetail.saving")}
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4 mr-1" />
+                        {t("userDetail.save")}
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={handleCancel}
+                    className="btn btn-secondary flex items-center"
+                  >
+                    <Close className="w-4 h-4 mr-1" /> {t("userDetail.cancel")}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Profile Picture and Basic Information Cards */}
@@ -1113,7 +1117,7 @@ const FFUserDetail: React.FC = () => {
             <div className="bg-white rounded-lg shadow p-8">
               <div className="font-semibold mb-6 flex items-center justify-center">
                 <User className="w-6 h-6 mr-2 text-purple-600" />
-                <span className="text-lg">Profile Picture</span>
+                <span className="text-lg">{t("userDetail.profilePicture")}</span>
               </div>
               <div className="flex flex-col items-center space-y-4">
                 <div className="flex-shrink-0 relative">
@@ -1146,8 +1150,8 @@ const FFUserDetail: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          setEditedProfile((prev) =>
-                            prev ? { ...prev, profilePicture: null } : prev
+                          setEditedProfile((prev: UserProfile | null) =>
+                            prev ? { ...prev, profilePicture: "" } : prev
                           );
                           setSelectedProfilePicture(null);
                           setProfilePicturePreview(null);
@@ -1178,8 +1182,8 @@ const FFUserDetail: React.FC = () => {
                       >
                         <User className="w-4 h-4 mr-2" />
                         {profilePicturePreview
-                          ? "Change Picture"
-                          : "Update Picture"}
+                          ? t("userDetail.changePicture")
+                          : t("userDetail.updatePicture")}
                       </label>
                       <input
                         id="profile-picture-input"
@@ -1198,13 +1202,13 @@ const FFUserDetail: React.FC = () => {
                           className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors duration-200 flex items-center"
                         >
                           <X className="w-4 h-4 mr-1" />
-                          Remove
+                          {t("userDetail.remove")}
                         </button>
                       </div>
                     )}
 
                     <div className="text-xs text-gray-500 text-center">
-                      Recommended: Square image, PNG, JPEG, JPG, WebP - max 7MB
+                      {t("userDetail.imageRecommendation")}
                     </div>
                   </div>
                 )}
@@ -1254,7 +1258,7 @@ const FFUserDetail: React.FC = () => {
                       strokeWidth="2"
                     />
                   </svg>
-                  Profile QR Code
+                  {t("userDetail.qrCode")}
                 </div>
                 <img
                   src={profile.qrCodeUrl}
@@ -1274,14 +1278,14 @@ const FFUserDetail: React.FC = () => {
             <div className="bg-white rounded-lg shadow p-6">
               <div className="font-semibold mb-4 flex items-center">
                 <User className="w-5 h-5 mr-2 text-blue-600" />
-                Profile Information
+                {t("userDetail.profileInfo")}
               </div>
               <div className="space-y-4">
                 {/* First row: Job Title and Company */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Job Title <span className="text-red-500">*</span>
+                      {t("userDetail.jobTitle")} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -1296,18 +1300,18 @@ const FFUserDetail: React.FC = () => {
                           : displayValue(profile?.jobTitle)
                       }
                       disabled={!editMode}
-                      onChange={(e) => {
-                        // Only allow alphabets and spaces for job title
-                        const value = e.target.value.replace(/[^A-Za-z ]/g, "");
-                        handleChange("jobTitle", value);
-                        // Clear error when user starts typing
-                        if (validationErrors.jobTitle) {
-                          setValidationErrors((prev) => ({
-                            ...prev,
-                            jobTitle: "",
-                          }));
-                        }
-                      }}
+                        onChange={(e) => {
+                          // Only allow alphabets and spaces for job title
+                          const value = e.target.value.replace(/[^A-Za-z ]/g, "");
+                          handleChange("jobTitle", value);
+                          // Clear error when user starts typing
+                          if (validationErrors.jobTitle) {
+                            setValidationErrors((prev: { [key: string]: string }) => ({
+                              ...prev,
+                              jobTitle: "",
+                            }));
+                          }
+                        }}
                     />
                     {validationErrors.jobTitle && (
                       <p className="text-red-600 text-xs mt-1 flex items-center">
@@ -1318,7 +1322,7 @@ const FFUserDetail: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Company <span className="text-red-500">*</span>
+                      {t("userDetail.company")} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -1333,18 +1337,18 @@ const FFUserDetail: React.FC = () => {
                           : displayValue(profile?.company)
                       }
                       disabled={!editMode}
-                      onChange={(e) => {
-                        // Only allow alphabets and spaces for company
-                        const value = e.target.value.replace(/[^A-Za-z ]/g, "");
-                        handleChange("company", value);
-                        // Clear error when user starts typing
-                        if (validationErrors.company) {
-                          setValidationErrors((prev) => ({
-                            ...prev,
-                            company: "",
-                          }));
-                        }
-                      }}
+                        onChange={(e) => {
+                          // Only allow alphabets and spaces for company
+                          const value = e.target.value.replace(/[^A-Za-z ]/g, "");
+                          handleChange("company", value);
+                          // Clear error when user starts typing
+                          if (validationErrors.company) {
+                            setValidationErrors((prev: { [key: string]: string }) => ({
+                              ...prev,
+                              company: "",
+                            }));
+                          }
+                        }}
                     />
                     {validationErrors.company && (
                       <p className="text-red-600 text-xs mt-1 flex items-center">
@@ -1359,7 +1363,7 @@ const FFUserDetail: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Website
+                      {t("userDetail.website")}
                     </label>
                     <input
                       type="text"
@@ -1374,17 +1378,17 @@ const FFUserDetail: React.FC = () => {
                           : displayValue(profile?.website)
                       }
                       disabled={!editMode}
-                      onChange={(e) => {
-                        handleChange("website", e.target.value);
-                        // Clear error when user starts typing
-                        if (validationErrors.website) {
-                          setValidationErrors((prev) => ({
-                            ...prev,
-                            website: "",
-                          }));
-                        }
-                      }}
-                      placeholder="https://example.com"
+                        onChange={(e) => {
+                          handleChange("website", e.target.value);
+                          // Clear error when user starts typing
+                          if (validationErrors.website) {
+                            setValidationErrors((prev: { [key: string]: string }) => ({
+                              ...prev,
+                              website: "",
+                            }));
+                          }
+                        }}
+                      placeholder={t("userDetail.websitePlaceholder")}
                     />
                     {validationErrors.website && (
                       <p className="text-red-600 text-xs mt-1 flex items-center">
@@ -1395,7 +1399,7 @@ const FFUserDetail: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Profile URL
+                      {t("userDetail.profileUrl")}
                     </label>
                     <div className="flex items-center space-x-2">
                       <input
@@ -1424,7 +1428,7 @@ const FFUserDetail: React.FC = () => {
                 {/* Third row: Bio (full width) */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Bio
+                    {t("userDetail.bio")}
                   </label>
                   <div className="relative">
                     <textarea
@@ -1450,12 +1454,12 @@ const FFUserDetail: React.FC = () => {
             <div className="bg-white rounded-lg shadow p-6">
               <div className="font-semibold mb-4 flex items-center">
                 <Mail className="w-5 h-5 mr-2 text-purple-600" />
-                Contact Information
+                {t("userDetail.contactInfo")}
               </div>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Primary Email <span className="text-red-500">*</span>
+                    {t("userDetail.primaryEmail")} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="email"
@@ -1481,7 +1485,7 @@ const FFUserDetail: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Additional Emails
+                    {t("userDetail.additionalEmails")}
                   </label>
                   {editMode ? (
                     <div className="space-y-2">
@@ -1508,13 +1512,13 @@ const FFUserDetail: React.FC = () => {
                                 if (
                                   validationErrors[`additionalEmail${index}`]
                                 ) {
-                                  setValidationErrors((prev) => ({
+                                  setValidationErrors((prev: { [key: string]: string }) => ({
                                     ...prev,
                                     [`additionalEmail${index}`]: "",
                                   }));
                                 }
                               }}
-                              placeholder="Enter additional email"
+                              placeholder={t("userDetail.enterAdditionalEmail")}
                             />
                             {validationErrors[`additionalEmail${index}`] && (
                               <p className="text-red-600 text-xs flex items-center mb-2">
@@ -1539,7 +1543,7 @@ const FFUserDetail: React.FC = () => {
                           className="text-sm text-purple-600 hover:text-purple-800 flex items-center transition-colors"
                         >
                           <Plus className="w-4 h-4 mr-1" />
-                          Add additional email
+                          {t("userDetail.addEmail")}
                         </button>
                       )}
                     </div>
@@ -1586,7 +1590,7 @@ const FFUserDetail: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Primary Phone <span className="text-red-500">*</span>
+                    {t("userDetail.primaryPhone")} <span className="text-red-500">*</span>
                   </label>
                   {editMode ? (
                     <>
@@ -1598,16 +1602,16 @@ const FFUserDetail: React.FC = () => {
                           editedProfile?.phoneNumber?.value || ""
                         )}
                         onChange={(value) => {
-                          handlePrimaryPhoneChange(value);
+                          handlePrimaryPhoneChange(value || "");
                           // Clear error when user starts typing
                           if (validationErrors.phoneNumber) {
-                            setValidationErrors((prev) => ({
+                            setValidationErrors((prev: { [key: string]: string }) => ({
                               ...prev,
                               phoneNumber: "",
                             }));
                           }
                         }}
-                        placeholder="Enter phone number"
+                        placeholder={t("userDetail.enterPhoneNumber")}
                         className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                           validationErrors.phoneNumber
                             ? "border-red-500"
@@ -1635,7 +1639,7 @@ const FFUserDetail: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Additional Phones
+                    {t("userDetail.additionalPhones")}
                   </label>
                   {editMode ? (
                     <div className="space-y-2">
@@ -1663,20 +1667,20 @@ const FFUserDetail: React.FC = () => {
                                 if (
                                   validationErrors[`additionalPhone${index}`]
                                 ) {
-                                  setValidationErrors((prev) => ({
+                                  setValidationErrors((prev: { [key: string]: string }) => ({
                                     ...prev,
                                     [`additionalPhone${index}`]: "",
                                   }));
                                 }
                               }}
-                              onCountryChange={(country) => {
+                              onCountryChange={(country: string) => {
                                 handleAdditionalPhoneChange(
                                   index,
                                   phone.value,
                                   country || ""
                                 );
                               }}
-                              placeholder="Enter phone number"
+                              placeholder={t("userDetail.enterPhoneNumber")}
                               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                                 validationErrors[`additionalPhone${index}`]
                                   ? "border-red-500"
@@ -1706,7 +1710,7 @@ const FFUserDetail: React.FC = () => {
                           className="text-sm text-purple-600 hover:text-purple-800 flex items-center transition-colors"
                         >
                           <Plus className="w-4 h-4 mr-1" />
-                          Add another phone number
+                          {t("userDetail.addPhone")}
                         </button>
                       )}
                     </div>
@@ -1731,7 +1735,7 @@ const FFUserDetail: React.FC = () => {
                       {(!profile?.phoneNumbers ||
                         profile.phoneNumbers.length === 0) && (
                         <div className="text-gray-400 text-sm">
-                          No additional phones
+                          {t("userDetail.noAdditionalPhones")}
                         </div>
                       )}
                     </div>
@@ -1747,14 +1751,14 @@ const FFUserDetail: React.FC = () => {
             <div className="bg-white rounded-lg shadow p-6">
               <div className="font-semibold mb-4 flex items-center">
                 <Calendar className="w-5 h-5 mr-2 text-green-600" />
-                Address Information
+                {t("userDetail.addressInfo")}
               </div>
               <div className="space-y-4">
                 {/* First row: Street Address and City */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Street Address
+                      {t("userDetail.street")}
                     </label>
                     <input
                       type="text"
@@ -1772,7 +1776,7 @@ const FFUserDetail: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      City
+                      {t("userDetail.city")}
                     </label>
                     <input
                       type="text"
@@ -1796,7 +1800,7 @@ const FFUserDetail: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      State/Province
+                      {t("userDetail.state")}
                     </label>
                     <input
                       type="text"
@@ -1816,7 +1820,7 @@ const FFUserDetail: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      ZIP/Postal Code
+                      {t("userDetail.zip")}
                     </label>
                     <input
                       type="text"
@@ -1837,7 +1841,7 @@ const FFUserDetail: React.FC = () => {
                 {/* Third row: Country */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Country
+                    {t("userDetail.country")}
                   </label>
                   {editMode ? (
                     <>
@@ -1864,7 +1868,7 @@ const FFUserDetail: React.FC = () => {
                             }));
                           }
                         }}
-                        placeholder="Select a country"
+                        placeholder={t("userDetail.selectCountry")}
                         styles={{
                           ...selectStyles,
                           control: (provided: any, state: any) => ({
@@ -1908,13 +1912,13 @@ const FFUserDetail: React.FC = () => {
             <div className="bg-white rounded-lg shadow p-6">
               <div className="font-semibold mb-4 flex items-center">
                 <User className="w-5 h-5 mr-2 text-indigo-600" />
-                Social Links
+                {t("userDetail.socialLinks")}
               </div>
               <div className="space-y-4">
                 {[
-                  { display: "LinkedIn", key: "linkedin" },
-                  { display: "X", key: "x" },
-                  { display: "Instagram", key: "instagram" },
+                  { display: t("userDetail.linkedIn"), key: "linkedin" },
+                  { display: t("userDetail.x"), key: "x" },
+                  { display: t("userDetail.instagram"), key: "instagram" },
                 ].map(({ display, key }) => (
                   <div key={key}>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1951,7 +1955,7 @@ const FFUserDetail: React.FC = () => {
                           }));
                         }
                       }}
-                      placeholder={`https://${key.toLowerCase()}.com/yourprofile`}
+                      placeholder={t(`userDetail.${key}Placeholder`)}
                     />
                     {validationErrors[`socialLink${key}`] && (
                       <p className="text-red-600 text-xs mt-1 flex items-center">
@@ -1971,7 +1975,7 @@ const FFUserDetail: React.FC = () => {
             <div className="bg-white rounded-lg shadow p-6">
               <div className="font-semibold mb-4 flex items-center">
                 <User className="w-5 h-5 mr-2 text-purple-600" />
-                Custom Social Links
+                {t("userDetail.customSocialLinks")}
               </div>
               <div className="space-y-4">
                 {customSocialLinks.length > 0 ? (
@@ -1981,7 +1985,7 @@ const FFUserDetail: React.FC = () => {
                         <div className="flex items-start space-x-3">
                           <div className="flex-1">
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Platform Name
+                              {t("userDetail.platform")}
                             </label>
                             <input
                               type="text"
@@ -2012,7 +2016,7 @@ const FFUserDetail: React.FC = () => {
                                   }));
                                 }
                               }}
-                              placeholder="e.g., Facebook, YouTube, TikTok"
+                              placeholder={t("userDetail.platformPlaceholder")}
                             />
                             {validationErrors[
                               `customSocialLinkPlatform${idx}`
@@ -2030,7 +2034,7 @@ const FFUserDetail: React.FC = () => {
 
                           <div className="flex-1">
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              URL
+                              {t("userDetail.url")}
                             </label>
                             <input
                               type="text"
@@ -2057,7 +2061,7 @@ const FFUserDetail: React.FC = () => {
                                   }));
                                 }
                               }}
-                              placeholder="https://example.com/yourprofile"
+                              placeholder={t("userDetail.urlPlaceholder")}
                             />
                             {validationErrors[`customSocialLinkUrl${idx}`] && (
                               <p className="text-red-600 text-xs flex items-center mt-1">
@@ -2084,7 +2088,7 @@ const FFUserDetail: React.FC = () => {
                     )
                   )
                 ) : (
-                  <div className="text-gray-400 text-sm">No custom links</div>
+                  <div className="text-gray-400 text-sm">{t("userDetail.noCustomLinks")}</div>
                 )}
                 {editMode && (
                   <button
@@ -2093,7 +2097,7 @@ const FFUserDetail: React.FC = () => {
                     className="text-sm text-purple-600 hover:text-purple-800 flex items-center transition-colors mt-4"
                   >
                     <Plus className="w-4 h-4 mr-1" />
-                    Add custom social link
+                    {t("userDetail.addCustomLink")}
                   </button>
                 )}
               </div>
@@ -2104,12 +2108,12 @@ const FFUserDetail: React.FC = () => {
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="font-semibold mb-4 flex items-center">
                   <CheckCircle className="w-5 h-5 mr-2 text-green-600" />
-                  Subscription Information
+                  {t("userDetail.subscriptionInfo")}
                 </div>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Subscription Plan
+                      {t("userDetail.plan")}
                     </label>
                     <input
                       type="text"
@@ -2127,7 +2131,7 @@ const FFUserDetail: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Subscription Status
+                      {t("userDetail.status")}
                     </label>
                     <input
                       type="text"
@@ -2154,7 +2158,7 @@ const FFUserDetail: React.FC = () => {
             <div className="md:col-span-2 bg-yellow-50 rounded-lg shadow p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-semibold mb-1">NFC Configuration</div>
+                  <div className="font-semibold mb-1">{t("userDetail.nfcConfig")}</div>
                   <div
                     className={`font-medium mb-1 ${
                       invitationData?.nfcStatus === "configured"
@@ -2163,8 +2167,8 @@ const FFUserDetail: React.FC = () => {
                     }`}
                   >
                     {invitationData?.nfcStatus === "configured"
-                      ? "NFC Configuration Completed"
-                      : "NFC Configuration Pending"}
+                      ? t("userDetail.nfcCompleted")
+                      : t("userDetail.nfcPendingStatus")}
                   </div>
                   <div className="text-xs text-gray-500">
                     {invitationData?.nfcStatus === "configured"
@@ -2173,7 +2177,7 @@ const FFUserDetail: React.FC = () => {
                             ? formatDate(invitationData.nfcConfiguredAt)
                             : "N/A"
                         }`
-                      : "User's profile is complete. NFC card needs to be configured manually."}
+                      : t("userDetail.nfcPendingMsg")}
                   </div>
                 </div>
                 {invitationData?.nfcStatus !== "configured" && (
@@ -2181,7 +2185,7 @@ const FFUserDetail: React.FC = () => {
                     onClick={handleMarkAsConfigured}
                     className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md shadow-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
-                    Mark as Configured
+                    {t("userDetail.markAsConfigured")}
                   </button>
                 )}
               </div>
@@ -2190,13 +2194,13 @@ const FFUserDetail: React.FC = () => {
             <div className="bg-white rounded-lg shadow p-6 md:col-span-2">
               <div className="font-semibold mb-4 flex items-center">
                 <Clock className="w-5 h-5 mr-2 text-indigo-600" />
-                Onboarding Timeline
+                {t("userDetail.onboardingTimeline")}
               </div>
               <div className="flex items-center justify-between space-x-4">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-5 h-5 text-green-500" />
                   <div>
-                    <div className="font-medium text-sm">Invitation Sent</div>
+                    <div className="font-medium text-sm">{t("userDetail.invitationSent")}</div>
                     <div className="text-xs text-gray-500">
                       {invitationData?.invitationSentAt
                         ? formatDate(invitationData.invitationSentAt)
@@ -2207,7 +2211,7 @@ const FFUserDetail: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-5 h-5 text-green-500" />
                   <div>
-                    <div className="font-medium text-sm">Profile Completed</div>
+                    <div className="font-medium text-sm">{t("userDetail.profileCompleted")}</div>
                     <div className="text-xs text-gray-500">
                       {invitationData?.profileCompletedAt
                         ? formatDate(invitationData.profileCompletedAt)
@@ -2224,15 +2228,15 @@ const FFUserDetail: React.FC = () => {
                   <div>
                     <div className="font-medium text-sm">
                       {invitationData?.nfcStatus === "configured"
-                        ? "NFC Completed"
-                        : "NFC Pending"}
+                        ? t("userDetail.nfcCompleted")
+                        : t("userDetail.nfcPendingStatus")}
                     </div>
                     <div className="text-xs text-gray-500">
                       {invitationData?.nfcStatus === "configured"
                         ? invitationData?.nfcConfiguredAt
                           ? formatDate(invitationData.nfcConfiguredAt)
                           : "N/A"
-                        : "pending"}
+                        : t("userDetail.pending")}
                     </div>
                   </div>
                 </div>
@@ -2246,3 +2250,4 @@ const FFUserDetail: React.FC = () => {
 };
 
 export default FFUserDetail;
+

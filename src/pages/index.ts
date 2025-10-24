@@ -9,6 +9,7 @@ export { default as SuperAdminDashboard } from './dashboard/SuperAdminDashboard'
 export { default as Users } from './users/Users';
 export { default as UserDetail } from './users/UserDetail';
 export { default as B2CUsers } from './users/B2CUsers';
+export { default as B2CUserDetail } from './users/B2CUserDetail';
 export { default as PlatformAdmins } from './users/PlatformAdmins';
 export { default as AssignedUsers } from './users/AssignedUsers';
 export { default as FFUserOnboarding } from './users/FFUserOnboarding';

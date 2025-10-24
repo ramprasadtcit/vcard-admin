@@ -232,4 +232,71 @@ export interface FFUserToken {
   expiresAt: string;
   isActive: boolean;
   createdAt: string;
+}
+
+// B2C User types for the new API
+export interface B2CUserData {
+  _id: string;
+  id: string;
+  email?: string;
+  fullName?: string;
+  jobTitle?: string;
+  company?: string;
+  isActive: boolean;
+  createdAt?: string;
+  phoneNumber?: {
+    value: string;
+    country: string;
+  };
+}
+
+// Detailed B2C User type for the getUserDetailById API
+export interface B2CUserDetail {
+  _id: string;
+  email: string;
+  username: string;
+  fullName: string;
+  jobTitle: string;
+  company: string;
+  bio: string;
+  profilePicture: string;
+  isChatEnabled: boolean;
+  additionalEmails: string[];
+  phoneNumbers: Array<{
+    value: string;
+    country: string;
+  }>;
+  address: {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+  };
+  socialLinks: any[];
+  website: string;
+  backgroundImage: string | null;
+  logo: string;
+  cardColor: {
+    type: string;
+    colors: string[];
+  };
+  qrCodeUrl: string;
+  isEmailVerified: boolean;
+  isPhoneVerified: boolean;
+  isActive: boolean;
+  lastLoginAt: string;
+  orgType: string;
+  preferredLanguage: string;
+  botConfig: {
+    id: string;
+    isChatEnable: boolean;
+    isAvatorEnable: boolean;
+  };
+  subscription: {
+    plan: string;
+    status: string;
+  };
+  primaryLanguage: string;
+  secondaryLanguages: string[];
 } 

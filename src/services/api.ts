@@ -1,6 +1,6 @@
 import axios, { InternalAxiosRequestConfig } from 'axios';
 import { toast } from 'react-toastify';
-import { User, Organization, NFCCard, CardTemplate, Subscription, Analytics } from '../types';
+import { User, Organization, NFCCard, CardTemplate, Subscription, Analytics, B2CUserData } from '../types';
 import { 
   mockUsers, 
   mockOrganizations, 
@@ -323,6 +323,51 @@ export const apiService = {
 
   getUsernameSuggestions: async (email: string) => {
     const response = await api.get(`/auth/username-suggestions?email=${encodeURIComponent(email)}`);
+    return response.data;
+  },
+
+  // B2C Users
+  getAllB2CUsers: async (page: number = 1, limit: number = 10): Promise<{ users: B2CUserData[], totalUsers: number, activeUsers: number, inactiveUsers: number, totalPages: number }> => {
+    const response = await api.get(`/admin/getAllUser?page=${page}&limit=${limit}`);
+    console.log('Raw API response:', response.data);
+    console.log('Request params - page:', page, 'limit:', limit);
+    
+    // Handle the new API response format: { success: true, result: { userList: [...], totalUsers: X, activeUsers: Y, inactiveUsers: Z } }
+    if (response.data && response.data.success && response.data.result) {
+      const result = response.data.result;
+      console.log('Found result in response:', result);
+      
+      const totalPages = Math.ceil((result.totalUsers || 0) / limit);
+      
+      return {
+        users: result.userList || [],
+        totalUsers: result.totalUsers || 0,
+        activeUsers: result.activeUsers || 0,
+        inactiveUsers: result.inactiveUsers || 0,
+        totalPages: totalPages
+      };
+    } else {
+      console.error('Unexpected API response format:', response.data);
+      console.error('Available keys in response.data:', response.data ? Object.keys(response.data) : 'No data');
+      return {
+        users: [],
+        totalUsers: 0,
+        activeUsers: 0,
+        inactiveUsers: 0,
+        totalPages: 0
+      };
+    }
+  },
+
+  updateB2CUserStatus: async (userId: string, isActive: boolean): Promise<{ success: boolean, user: B2CUserData, message: string }> => {
+    const response = await api.patch(`/admin/updateUserIsActive/${userId}`, { isActive });
+    return response.data;
+  },
+
+  // Get user details by ID
+  getB2CUserById: async (userId: string): Promise<any> => {
+    const response = await api.get(`/admin/getUserDetailById/${userId}`);
+    console.log('User details API response:', response.data);
     return response.data;
   },
 };

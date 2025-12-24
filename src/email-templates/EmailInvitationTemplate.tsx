@@ -71,7 +71,7 @@ const EmailInvitationTemplate: React.FC<EmailInvitationTemplateProps> = ({
             <li style={{ marginBottom: '8px' }}>Digital card accessible via QR code and link</li>
             <li style={{ marginBottom: '8px' }}>Analytics to track who views your card</li>
             <li style={{ marginBottom: '8px' }}>Mobile app for advanced management</li>
-            <li style={{ marginBottom: '0' }}>Apple Wallet & Google Wallet integration</li>
+            {/* <li style={{ marginBottom: '0' }}>Apple Wallet & Google Wallet integration</li> */}
           </ul>
         </div>
 
@@ -102,7 +102,7 @@ const EmailInvitationTemplate: React.FC<EmailInvitationTemplateProps> = ({
             </button>
           ) : (
             <a 
-              href={invitationLink}
+              href={invitationLink.replace('twintik.com', 'admin.twintik.com')}
               style={{
                 backgroundColor: '#6366f1',
                 color: 'white',
@@ -144,7 +144,7 @@ const EmailInvitationTemplate: React.FC<EmailInvitationTemplateProps> = ({
           wordBreak: 'break-all',
           marginBottom: '25px'
         }}>
-          {invitationLink}
+          {invitationLink.replace('twintik.com', 'admin.twintik.com')}
         </p>
 
         <p style={{ color: '#374151', fontSize: '16px', lineHeight: '1.6', marginBottom: '0' }}>

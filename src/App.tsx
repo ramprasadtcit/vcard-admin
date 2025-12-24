@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { ReactElement } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, NotificationProvider, FFUsersProvider } from './contexts';
 import RouteGuard from './components/RouteGuard';
-import Layout from './components/Layout';
+import Layout from './components/Layout';  
 
 // Import pages from organized structure
 import {
@@ -19,6 +19,7 @@ import {
   ActivityLogs,
   SupportTickets,
   B2CUsers,
+  B2CUserDetail,
   UserDetail,
   OrganizationUserDetail,
   Users,
@@ -91,6 +92,7 @@ function App() {
                 <Route path="activity-logs" element={<ActivityLogs />} />
                 <Route path="support-tickets" element={<SupportTickets />} />
                 <Route path="b2c-users" element={<B2CUsers />} />
+                <Route path="b2c-users/:userId" element={<B2CUserDetail />} />
                 <Route path="admin/fnf-onboarding" element={<FFUserOnboarding />} />
                 <Route path="admin/fnf-onboarding/user/:userId" element={<FFUserDetail />} />
                 <Route path="admin/fnf-onboarding/user/:userId/edit" element={<FFUserEdit />} />

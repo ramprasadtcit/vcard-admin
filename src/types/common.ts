@@ -84,7 +84,7 @@ export interface Broadcast {
   message: string;
   type: 'announcement' | 'maintenance' | 'update' | 'alert';
   priority: 'low' | 'medium' | 'high';
-  targetAudience: 'all' | 'super_admin' | 'platform_admin' | 'org_admin' | 'org_sub_admin' | 'b2c';
+  targetAudience: 'all' | 'superadmin' | 'platform_admin' | 'org_admin' | 'org_sub_admin' | 'b2c';
   isActive: boolean;
   startDate: string;
   endDate?: string;
@@ -98,7 +98,7 @@ export interface BroadcastFormData {
   message: string;
   type: 'announcement' | 'maintenance' | 'update' | 'alert';
   priority: 'low' | 'medium' | 'high';
-  targetAudience: 'all' | 'super_admin' | 'platform_admin' | 'org_admin' | 'org_sub_admin' | 'b2c';
+  targetAudience: 'all' | 'superadmin' | 'platform_admin' | 'org_admin' | 'org_sub_admin' | 'b2c';
   startDate: string;
   endDate?: string;
 }

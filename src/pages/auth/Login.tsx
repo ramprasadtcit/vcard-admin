@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Shield, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../contexts';
 import { ROUTES } from '../../constants/routes';
+import TwinTikLogo from '../../assets/twintik-logo.svg';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -37,11 +38,12 @@ const Login: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <div className="mx-auto h-12 w-12 bg-primary-600 rounded-lg flex items-center justify-center">
-            <Shield className="h-6 w-6 text-white" />
+          <div className="mx-auto h-12 w-90 rounded-lg flex items-center justify-center">
+          <img src={TwinTikLogo} alt="Twintik Logo" className="h-50 w-50" />
+
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to Twintik
+            Sign In 
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Admin Panel Access
@@ -99,7 +101,7 @@ const Login: React.FC = () => {
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            <div className="text-red-600 text-sm text-center">
               {error}
             </div>
           )}
@@ -115,15 +117,7 @@ const Login: React.FC = () => {
           </div>
 
           <div className="text-center">
-            <p className="text-xs text-gray-500">
-              Demo credentials: Use any email from mock data with password "password"
-            </p>
-            <div className="mt-2 text-xs text-gray-400 space-y-1">
-              <p>• john@twintik.com (Super Admin)</p>
-              <p>• alex.johnson@twintik.com (Platform Admin)</p>
-              <p>• sarah@techcorp.com (Org Admin)</p>
-              <p>• mike@techcorp.com (Sub Admin)</p>
-            </div>
+            {/* Demo credentials removed */}
           </div>
         </form>
       </div>

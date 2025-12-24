@@ -1,5 +1,6 @@
 import axios, { InternalAxiosRequestConfig } from 'axios';
-import { User, Organization, NFCCard, CardTemplate, Subscription, Analytics } from '../types';
+import { toast } from 'react-toastify';
+import { User, Organization, NFCCard, CardTemplate, Subscription, Analytics, B2CUserData } from '../types';
 import { 
   mockUsers, 
   mockOrganizations, 
@@ -7,15 +8,20 @@ import {
   mockCardTemplates, 
   mockSubscriptions 
 } from '../data/mockData';
+import { normalizePhoneData } from '../utils/phoneUtils';
 
 // Configure axios defaults
+console.log('API URL:', process.env.REACT_APP_API_URL);
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3001/api',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3000/api/v1',
+  // baseURL: 'https://api.twintik.com/api/v1',
+  // baseURL: 'http://localhost:3000/api/v1',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
 
 // Request interceptor to add auth token
 api.interceptors.request.use(
@@ -31,14 +37,29 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle auth errors
+// Response interceptor to handle auth errors and normalize phone data
 api.interceptors.response.use(
-  (response: any) => response,
+  (response: any) => {
+    // Normalize phone data in responses to fix country code issues
+    if (response.data && typeof response.data === 'object') {
+      response.data = normalizePhoneData(response.data);
+    }
+    return response;
+  },
   (error: any) => {
     if (error.response?.status === 401) {
+      
+      // Clear stored auth data
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      
+      // Show session expired toaster
+      if (typeof window !== 'undefined') {
+        toast.error('Session expired. Please login again.');
+        
+        // Navigate to login page
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
@@ -48,14 +69,12 @@ api.interceptors.response.use(
 export const apiService = {
   // Auth
   login: async (email: string, password: string) => {
-          // Mock login - in real app, this would be a POST request
-      const foundUser = mockUsers.find(u => u.email === email);
-    
-    if (foundUser && password === 'password') {
-      return { user: foundUser, token: 'mock-token' };
+    // Real backend call
+    const response = await api.post('/admin/login', { email, password });
+    if (response.data && response.data.success && response.data.token) {
+      return { user: response.data.user, token: response.data.token };
     }
-    
-    throw new Error('Invalid credentials');
+    throw new Error(response.data?.message || 'Invalid credentials');
   },
 
   // Users
@@ -293,6 +312,62 @@ export const apiService = {
 
   delete: async <T>(url: string): Promise<T> => {
     const response = await api.delete(url);
+    return response.data;
+  },
+
+  // Username/URL check and suggestion
+  checkUsernameAvailability: async (username: string) => {
+    const response = await api.get(`/auth/check-username/${encodeURIComponent(username)}`);
+    return response.data;
+  },
+
+  getUsernameSuggestions: async (email: string) => {
+    const response = await api.get(`/auth/username-suggestions?email=${encodeURIComponent(email)}`);
+    return response.data;
+  },
+
+  // B2C Users
+  getAllB2CUsers: async (page: number = 1, limit: number = 10): Promise<{ users: B2CUserData[], totalUsers: number, activeUsers: number, inactiveUsers: number, totalPages: number }> => {
+    const response = await api.get(`/admin/getAllUser?page=${page}&limit=${limit}`);
+    console.log('Raw API response:', response.data);
+    console.log('Request params - page:', page, 'limit:', limit);
+    
+    // Handle the new API response format: { success: true, result: { userList: [...], totalUsers: X, activeUsers: Y, inactiveUsers: Z } }
+    if (response.data && response.data.success && response.data.result) {
+      const result = response.data.result;
+      console.log('Found result in response:', result);
+      
+      const totalPages = Math.ceil((result.totalUsers || 0) / limit);
+      
+      return {
+        users: result.userList || [],
+        totalUsers: result.totalUsers || 0,
+        activeUsers: result.activeUsers || 0,
+        inactiveUsers: result.inactiveUsers || 0,
+        totalPages: totalPages
+      };
+    } else {
+      console.error('Unexpected API response format:', response.data);
+      console.error('Available keys in response.data:', response.data ? Object.keys(response.data) : 'No data');
+      return {
+        users: [],
+        totalUsers: 0,
+        activeUsers: 0,
+        inactiveUsers: 0,
+        totalPages: 0
+      };
+    }
+  },
+
+  updateB2CUserStatus: async (userId: string, isActive: boolean): Promise<{ success: boolean, user: B2CUserData, message: string }> => {
+    const response = await api.patch(`/admin/updateUserIsActive/${userId}`, { isActive });
+    return response.data;
+  },
+
+  // Get user details by ID
+  getB2CUserById: async (userId: string): Promise<any> => {
+    const response = await api.get(`/admin/getUserDetailById/${userId}`);
+    console.log('User details API response:', response.data);
     return response.data;
   },
 };

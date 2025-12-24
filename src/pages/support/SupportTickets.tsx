@@ -1,12 +1,12 @@
 import React from 'react';
-import ComingSoonOverlay from '../../components/ComingSoonOverlay';
+import { ComingSoonOverlay } from '../../components';
 
 const SupportTickets: React.FC = () => {
   return (
     <ComingSoonOverlay 
-      title="Support Tickets"
-      description="Manage and respond to support requests"
-      phase="Q1 2024"
+      title="Support Ticket Management"
+      description="Support ticket system and customer service features are currently being developed."
+      phase="Phase 3"
     />
   );
 };

@@ -155,7 +155,7 @@ const TwinTikMobileAppAccessTemplate: React.FC<TwinTikMobileAppAccessTemplatePro
         </div>
 
         {/* Wallet Integration */}
-        <div style={{ 
+        {/* <div style={{ 
           backgroundColor: '#fdf2f8', 
           border: '1px solid #ec4899', 
           borderRadius: '8px', 
@@ -173,7 +173,7 @@ const TwinTikMobileAppAccessTemplate: React.FC<TwinTikMobileAppAccessTemplatePro
             <li style={{ marginBottom: '5px' }}>Works offline</li>
             <li style={{ marginBottom: '0' }}>Seamless integration with your existing wallet</li>
           </ul>
-        </div>
+        </div> */}
 
         {/* Quick Access */}
         <div style={{ textAlign: 'center', marginBottom: '25px' }}>

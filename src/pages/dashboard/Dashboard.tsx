@@ -19,6 +19,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useAuth } from '../../contexts';
 import { DashboardStats, OrgAdminDashboardStats } from '../../types';
 import { mockOrgAdminDashboardStats } from '../../data/mockData';
+import { ComingSoonOverlay } from '../../components';
 
 const Dashboard: React.FC = () => {
   const { user: currentUser } = useAuth();
@@ -252,7 +253,7 @@ const Dashboard: React.FC = () => {
     if (!stats) return [];
 
     switch (currentUser?.role) {
-      case 'super_admin':
+      case 'superadmin':
       case 'platform_admin':
         return [
           {
@@ -328,7 +329,7 @@ const Dashboard: React.FC = () => {
 
   const getQuickActions = () => {
     switch (currentUser?.role) {
-      case 'super_admin':
+      case 'superadmin':
         return [
           { label: 'Add Platform Admin', icon: Plus, path: '/platform-admins' },
           { label: 'Review NFC Requests', icon: Smartphone, path: '/nfc-requests' },
@@ -372,10 +373,14 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  // Return Org Admin Dashboard for org_admin role
-  if (currentUser?.role === 'org_admin') {
-    return <OrgAdminDashboard />;
-  }
+  // Show coming soon for all roles - only F&F onboarding is functional
+  return (
+    <ComingSoonOverlay 
+      title="Dashboard"
+      description="Dashboard features are currently being developed. Only F&F onboarding functionality is available."
+      phase="Phase 2"
+    />
+  );
 
   // Original dashboard for other roles
   const roleStats = getRoleSpecificStats();

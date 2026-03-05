@@ -266,10 +266,10 @@ const FFUserProfileModal: React.FC<FFUserProfileModalProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Twitter</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">X</label>
                     <input
                       type="url"
-                      value={user.profileData.socialLinks?.twitter || ''}
+                      value={user.profileData.socialLinks?.x || ''}
                       disabled={!isEditing}
                       className={`w-full px-3 py-2 border rounded-md ${
                         isEditing 

@@ -10,7 +10,7 @@ const EmailInvitationPage: React.FC = () => {
   const invitationData = {
     userName: 'John Doe',
     organizationName: 'TechCorp Solutions',
-    invitationLink: 'https://twintik.com/onboard/ff-token-abc123',
+    invitationLink: 'https://admin.twintik.com/onboard/ff-token-abc123',
     inviterName: 'Sarah Johnson',
     inviterEmail: 'sarah.johnson@techcorp.com'
   };

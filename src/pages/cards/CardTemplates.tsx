@@ -331,7 +331,7 @@ const CardTemplates: React.FC = () => {
   };
 
   // Only Super Admin and Org Admin can access this page
-  if (currentUser?.role !== 'super_admin' && currentUser?.role !== 'org_admin') {
+  if (currentUser?.role !== 'superadmin' && currentUser?.role !== 'org_admin') {
     return (
       <div className="text-center py-12">
         <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
